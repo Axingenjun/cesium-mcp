@@ -6,6 +6,9 @@ import { z } from "zod";
 import { WebSocketServer, WebSocket } from "ws";
 import { createServer } from "http";
 import { AsyncLocalStorage } from "async_hooks";
+import { readFileSync, existsSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 
 // src/locales/en.ts
 var toolDescriptions = {
@@ -1210,6 +1213,20 @@ async function handleHttpRequest(req, res) {
     }
     return;
   }
+  if (req.method === "GET" && req.url === "/bridge.js") {
+    const bundle = _findLocalBridgeBundle();
+    if (bundle) {
+      res.writeHead(200, {
+        "Content-Type": "application/javascript; charset=utf-8",
+        "Access-Control-Allow-Origin": "*"
+      });
+      res.end(bundle);
+      return;
+    }
+    res.writeHead(404);
+    res.end("// local bridge bundle not found");
+    return;
+  }
   if (req.method === "GET" && (req.url === "/" || req.url === "/index.html")) {
     const token = process.env.CESIUM_ION_TOKEN || "";
     const html = _getViewerHtml(token, WS_PORT);
@@ -1220,6 +1237,27 @@ async function handleHttpRequest(req, res) {
   res.writeHead(404);
   res.end("Not Found");
 }
+var _bridgeBundleCache;
+function _findLocalBridgeBundle() {
+  if (_bridgeBundleCache !== void 0) return _bridgeBundleCache;
+  const here = dirname(fileURLToPath(import.meta.url));
+  const file = "cesium-mcp-bridge.browser.global.js";
+  const candidates = [
+    // monorepo: runtime/dist → ../../cesium-mcp-bridge/dist
+    join(here, "..", "..", "cesium-mcp-bridge", "dist", file),
+    // npm install: node_modules/cesium-mcp-runtime/dist → node_modules/cesium-mcp-bridge/dist
+    join(here, "..", "..", "..", "cesium-mcp-bridge", "dist", file),
+    join(here, "..", "node_modules", "cesium-mcp-bridge", "dist", file)
+  ];
+  for (const c of candidates) {
+    if (existsSync(c)) {
+      _bridgeBundleCache = readFileSync(c, "utf-8");
+      return _bridgeBundleCache;
+    }
+  }
+  _bridgeBundleCache = null;
+  return null;
+}
 function _getViewerHtml(token, wsPort) {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -1229,7 +1267,7 @@ function _getViewerHtml(token, wsPort) {
 <title>Cesium MCP Viewer</title>
 <script src="https://cesium.com/downloads/cesiumjs/releases/1.142/Build/Cesium/Cesium.js"></script>
 <link href="https://cesium.com/downloads/cesiumjs/releases/1.142/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
-<script src="https://unpkg.com/cesium-mcp-bridge@latest/dist/cesium-mcp-bridge.browser.global.js"></script>
+<script src="/bridge.js" onerror="var s=document.createElement('script');s.src='https://unpkg.com/cesium-mcp-bridge@latest/dist/cesium-mcp-bridge.browser.global.js';document.head.appendChild(s)"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body,#c{width:100%;height:100%;overflow:hidden}

@@ -17,6 +17,9 @@ import { z } from 'zod'
 import { WebSocketServer, WebSocket, type RawData } from 'ws'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { AsyncLocalStorage } from 'node:async_hooks'
+import { readFileSync, existsSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 import { toolDescriptions as _enToolDesc, paramDescriptions as _enParamDesc } from './locales/en.js'
 import { toolDescriptions as _zhToolDesc, paramDescriptions as _zhParamDesc } from './locales/zh-CN.js'
 
@@ -323,6 +326,23 @@ async function handleHttpRequest(req: IncomingMessage, res: ServerResponse) {
     return
   }
 
+  // GET /bridge.js — serve the locally bundled cesium-mcp-bridge (so the viewer always
+  // runs the dist shipped alongside this runtime, not a stale unpkg@latest)
+  if (req.method === 'GET' && req.url === '/bridge.js') {
+    const bundle = _findLocalBridgeBundle()
+    if (bundle) {
+      res.writeHead(200, {
+        'Content-Type': 'application/javascript; charset=utf-8',
+        'Access-Control-Allow-Origin': '*',
+      })
+      res.end(bundle)
+      return
+    }
+    res.writeHead(404)
+    res.end('// local bridge bundle not found')
+    return
+  }
+
   // GET / — serve built-in viewer page
   if (req.method === 'GET' && (req.url === '/' || req.url === '/index.html')) {
     const token = process.env.CESIUM_ION_TOKEN || ''
@@ -336,6 +356,29 @@ async function handleHttpRequest(req: IncomingMessage, res: ServerResponse) {
   res.end('Not Found')
 }
 
+/** Locate the bundled bridge IIFE shipped alongside this runtime (monorepo sibling or npm dep). Cached. */
+let _bridgeBundleCache: string | null | undefined
+function _findLocalBridgeBundle(): string | null {
+  if (_bridgeBundleCache !== undefined) return _bridgeBundleCache
+  const here = dirname(fileURLToPath(import.meta.url))
+  const file = 'cesium-mcp-bridge.browser.global.js'
+  const candidates = [
+    // monorepo: runtime/dist → ../../cesium-mcp-bridge/dist
+    join(here, '..', '..', 'cesium-mcp-bridge', 'dist', file),
+    // npm install: node_modules/cesium-mcp-runtime/dist → node_modules/cesium-mcp-bridge/dist
+    join(here, '..', '..', '..', 'cesium-mcp-bridge', 'dist', file),
+    join(here, '..', 'node_modules', 'cesium-mcp-bridge', 'dist', file),
+  ]
+  for (const c of candidates) {
+    if (existsSync(c)) {
+      _bridgeBundleCache = readFileSync(c, 'utf-8')
+      return _bridgeBundleCache
+    }
+  }
+  _bridgeBundleCache = null
+  return null
+}
+
 /** Built-in viewer HTML served at GET / */
 function _getViewerHtml(token: string, wsPort: number): string {
   return `<!DOCTYPE html>
@@ -346,7 +389,7 @@ function _getViewerHtml(token: string, wsPort: number): string {
 <title>Cesium MCP Viewer</title>
 <script src="https://cesium.com/downloads/cesiumjs/releases/1.142/Build/Cesium/Cesium.js"><\/script>
 <link href="https://cesium.com/downloads/cesiumjs/releases/1.142/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
-<script src="https://unpkg.com/cesium-mcp-bridge@latest/dist/cesium-mcp-bridge.browser.global.js"><\/script>
+<script src="/bridge.js" onerror="var s=document.createElement('script');s.src='https://unpkg.com/cesium-mcp-bridge@latest/dist/cesium-mcp-bridge.browser.global.js';document.head.appendChild(s)"><\/script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body,#c{width:100%;height:100%;overflow:hidden}
