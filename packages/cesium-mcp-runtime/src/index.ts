@@ -298,8 +298,54 @@ function handleHttpRequest(req: IncomingMessage, res: ServerResponse) {
     return
   }
 
+  // GET / — serve built-in viewer page
+  if (req.method === 'GET' && (req.url === '/' || req.url === '/index.html')) {
+    const token = process.env.CESIUM_ION_TOKEN || ''
+    const html = _getViewerHtml(token, WS_PORT)
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+    res.end(html)
+    return
+  }
+
   res.writeHead(404)
   res.end('Not Found')
+}
+
+/** Built-in viewer HTML served at GET / */
+function _getViewerHtml(token: string, wsPort: number): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cesium MCP Viewer</title>
+<script src="https://cesium.com/downloads/cesiumjs/releases/1.142/Build/Cesium/Cesium.js"><\/script>
+<link href="https://cesium.com/downloads/cesiumjs/releases/1.142/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+<script src="https://unpkg.com/cesium-mcp-bridge@latest/dist/cesium-mcp-bridge.browser.global.js"><\/script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body,#c{width:100%;height:100%;overflow:hidden}
+#s{position:fixed;top:12px;right:12px;z-index:999;padding:6px 12px;border-radius:6px;font:13px/1.4 -apple-system,sans-serif;backdrop-filter:blur(8px);transition:all .3s}
+.c0{background:rgba(255,170,0,.85);color:#333}
+.c1{background:rgba(0,180,80,.85);color:#fff}
+.c2{background:rgba(220,50,50,.85);color:#fff}
+</style>
+</head>
+<body>
+<div id="c"></div><div id="s" class="c0">Connecting...</div>
+<script>
+var WS=${wsPort},TOK='${token}',SE=new URLSearchParams(location.search).get('session')||'default';
+if(TOK)Cesium.Ion.defaultAccessToken=TOK;
+var v=new Cesium.Viewer('c',{terrain:Cesium.Terrain.fromWorldTerrain(),baseLayerPicker:!0,geocoder:!0,animation:!0,timeline:!0});
+var b=new CesiumMcpBridge.CesiumBridge(v),el=document.getElementById('s');
+function conn(){var ws=new WebSocket('ws://localhost:'+WS+'?session='+SE);
+ws.onopen=function(){el.className='c1';el.textContent='Connected'};
+ws.onmessage=function(e){var m=JSON.parse(e.data);b.execute({action:m.method,params:m.params||{}}).then(function(r){if(m.id)ws.send(JSON.stringify({id:m.id,result:r||{success:!0}}))})};
+ws.onclose=function(){el.className='c2';el.textContent='Disconnected';setTimeout(conn,3000)};
+ws.onerror=function(){ws.close()}}
+conn();
+<\/script>
+</body></html>`
 }
 
 /** Probe a port to check if a cesium-mcp-runtime instance is already running */

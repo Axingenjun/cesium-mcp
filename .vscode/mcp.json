@@ -20,6 +20,11 @@
     "copilot-enhance-3210": {
       "type": "http",
       "url": "http://127.0.0.1:3210/mcp"
+    },
+    "sunway-loop": {
+      "type": "http",
+      "url": "http://127.0.0.1:3457/mcp",
+      "__sunwayLoopManaged": true
     }
   }
 }
