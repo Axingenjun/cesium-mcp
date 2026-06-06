@@ -1,8 +1,8 @@
 import * as Cesium from 'cesium'
 import h337 from 'heatmap.js'
 import type {
-  AddGeoJsonLayerParams, AddHeatmapParams, LayerInfo, SetBasemapParams,
-  CategoryStyle, Load3dTilesParams, LoadTerrainParams, LoadImageryServiceParams,
+  AddGeoJsonLayerParams, AddGeoJsonPrimitiveParams, AddHeatmapParams, LayerInfo, SetBasemapParams,
+  CategoryStyle, Load3dTilesParams, AddGaussianSplatParams, LoadTerrainParams, LoadImageryServiceParams,
   LoadCzmlParams, LoadKmlParams, UpdateLayerStyleParams,
   GetLayerSchemaParams, LayerSchemaResult, LayerSchemaField,
 } from '../types'
@@ -16,6 +16,7 @@ interface CesiumRefs {
   entity?: Cesium.Entity
   labelEntities?: Cesium.Entity[]
   tileset?: Cesium.Cesium3DTileset
+  primitive?: any
   imageryLayer?: Cesium.ImageryLayer
   movingEntity?: Cesium.Entity
   trailEntity?: Cesium.Entity
@@ -195,6 +196,54 @@ export class LayerManager {
     return info
   }
 
+  // ==================== addGeoJsonPrimitive ====================
+
+  async addGeoJsonPrimitive(params: AddGeoJsonPrimitiveParams): Promise<LayerInfo> {
+    const { id, name, data, url, allowPicking, show } = params
+
+    if (!data && !url) throw new Error('Either "data" or "url" must be provided')
+
+    const layerId = id ?? `geojson_prim_${Date.now()}`
+    const layerName = name ?? layerId
+
+    this.removeLayer(layerId)
+
+    const opts: Record<string, unknown> = {}
+    if (allowPicking !== undefined) opts.allowPicking = allowPicking
+    if (show !== undefined) opts.show = show
+
+    const GeoJsonPrimitive = (Cesium as any).GeoJsonPrimitive
+    if (!GeoJsonPrimitive) {
+      throw new Error('GeoJsonPrimitive is not available in this CesiumJS version')
+    }
+
+    let primitive: any
+    if (url) {
+      primitive = await GeoJsonPrimitive.fromUrl(url, opts)
+    } else {
+      primitive = GeoJsonPrimitive.fromGeoJson(data, opts)
+    }
+
+    this._viewer.scene.primitives.add(primitive)
+
+    const featureCount = primitive.featureCount ?? 0
+    const info: LayerInfo = {
+      id: layerId,
+      name: layerName,
+      type: 'geojson-primitive',
+      visible: show !== false,
+      color: '#10B981',
+    }
+    this._cesiumRefs.set(layerId, { primitive })
+    this._layers.push(info)
+
+    this._viewer.flyTo(primitive, { duration: 1.5 }).catch(() => {
+      // flyTo may fail if primitive has no bounding volume — ignore
+    })
+
+    return { ...info, featureCount } as LayerInfo & { featureCount: number }
+  }
+
   // ==================== addHeatmap ====================
 
   async addHeatmap(params: AddHeatmapParams): Promise<LayerInfo> {
@@ -286,6 +335,7 @@ export class LayerManager {
         for (const e of refs.labelEntities) this._viewer.entities.remove(e)
       }
       if (refs.tileset) this._viewer.scene.primitives.remove(refs.tileset)
+      if (refs.primitive) this._viewer.scene.primitives.remove(refs.primitive)
       if (refs.imageryLayer) this._viewer.imageryLayers.remove(refs.imageryLayer)
       if (refs.movingEntity) this._viewer.entities.remove(refs.movingEntity)
       if (refs.trailEntity) this._viewer.entities.remove(refs.trailEntity)
@@ -319,6 +369,7 @@ export class LayerManager {
       for (const e of refs.labelEntities) e.show = visible
     }
     if (refs.tileset) refs.tileset.show = visible
+    if (refs.primitive) refs.primitive.show = visible
     if (refs.imageryLayer) refs.imageryLayer.show = visible
     if (refs.movingEntity) refs.movingEntity.show = visible
     if (refs.trailEntity) refs.trailEntity.show = visible
@@ -338,6 +389,7 @@ export class LayerManager {
     if (refs.labelEntities?.length) { this._viewer.flyTo(refs.labelEntities); return }
     if (refs.entity) { this._viewer.flyTo(refs.entity); return }
     if (refs.tileset) { this._viewer.flyTo(refs.tileset); return }
+    if (refs.primitive) { this._viewer.flyTo(refs.primitive); return }
     if (refs.movingEntity) { this._viewer.flyTo(refs.movingEntity); return }
   }
 
@@ -617,6 +669,35 @@ export class LayerManager {
       type: '3D Tiles',
       visible: true,
       color: '#8B5CF6',
+    }
+    this._cesiumRefs.set(layerId, { tileset })
+    this._layers.push(info)
+    return info
+  }
+
+  // ==================== addGaussianSplat ====================
+
+  async addGaussianSplat(params: AddGaussianSplatParams): Promise<LayerInfo> {
+    const { id, name, url, maximumScreenSpaceError = 16, show = true } = params
+    const layerId = id ?? `gaussian_splat_${Date.now()}`
+    const layerName = name ?? '3D Gaussian Splat'
+
+    this.removeLayer(layerId)
+
+    const tileset = await Cesium.Cesium3DTileset.fromUrl(url, {
+      maximumScreenSpaceError,
+    })
+    tileset.show = show
+
+    this._viewer.scene.primitives.add(tileset)
+    this._viewer.flyTo(tileset, { duration: 1.5 })
+
+    const info: LayerInfo = {
+      id: layerId,
+      name: layerName,
+      type: '3d-gaussian-splat',
+      visible: show,
+      color: '#10B981',
     }
     this._cesiumRefs.set(layerId, { tileset })
     this._layers.push(info)

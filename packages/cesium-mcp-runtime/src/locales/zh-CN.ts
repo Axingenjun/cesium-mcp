@@ -26,6 +26,7 @@ export const toolDescriptions: Record<string, string> = {
 
   // — layer
   addGeoJsonLayer: '添加 GeoJSON 图层到地图（支持 Point/Line/Polygon，可配置颜色/分级/分类渲染）。data 和 url 二选一',
+  addGeoJsonPrimitive: '高性能加载大规模 GeoJSON 数据（10万+ 要素）。绕过 Entity 系统，直接使用 Primitive 渲染，适合海量数据可视化。data 和 url 二选一',
   listLayers: '获取当前所有图层列表（含 ID、名称、类型、可见性）',
   getLayerSchema: '获取图层的属性字段结构 — 返回字段名、类型、示例值，适用于 GeoJSON/CZML/KML/3D Tiles 图层',
   removeLayer: '从地图上移除指定图层（按图层ID）',
@@ -189,6 +190,14 @@ export const paramDescriptions: Record<string, Record<string, string>> = {
     data: 'GeoJSON FeatureCollection 对象（与 url 二选一）',
     url: 'GeoJSON 文件 URL（与 data 二选一，浏览器端 fetch 加载）',
     style: '样式配置（color, opacity, pointSize, choropleth, category）',
+  },
+  addGeoJsonPrimitive: {
+    id: '图层ID（不传则自动生成）',
+    name: '图层显示名称',
+    data: 'GeoJSON 对象（与 url 二选一）',
+    url: 'GeoJSON 文件 URL（与 data 二选一）',
+    allowPicking: '是否允许拾取（默认 true，关闭可提升性能）',
+    show: '是否显示（默认 true）',
   },
   listLayers: {},
   getLayerSchema: {

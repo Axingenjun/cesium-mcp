@@ -7,6 +7,7 @@ import type {
   ViewState,
   ZoomToExtentParams,
   AddGeoJsonLayerParams,
+  AddGeoJsonPrimitiveParams,
   AddHeatmapParams,
   AddLabelParams,
   AddMarkerParams,
@@ -17,6 +18,7 @@ import type {
   RemoveEntityParams,
   SetBasemapParams,
   Load3dTilesParams,
+  AddGaussianSplatParams,
   LoadTerrainParams,
   LoadImageryServiceParams,
   LoadCzmlParams,
@@ -54,6 +56,8 @@ import type {
   SetGlobeLightingParams,
   SetSceneOptionsParams,
   SetPostProcessParams,
+  SetEdgeDisplayModeParams,
+  SetEdgeDisplayModeResult,
   BatchAddEntitiesParams,
   QueryEntitiesParams,
   SaveViewpointParams,
@@ -67,7 +71,7 @@ import { playTrajectory as playTrajectoryCmd } from './commands/trajectory'
 import { lookAtTransform as lookAtTransformCmd, startOrbit as startOrbitCmd, stopOrbit as stopOrbitCmd, setCameraOptions as setCameraOptionsCmd, type OrbitHandler } from './commands/camera'
 import { addBillboard as addBillboardCmd, addBox as addBoxCmd, addCorridor as addCorridorCmd, addCylinder as addCylinderCmd, addEllipse as addEllipseCmd, addRectangle as addRectangleCmd, addWall as addWallCmd } from './commands/entity-types'
 import { createAnimation as createAnimationCmd, controlAnimation as controlAnimationCmd, removeAnimation as removeAnimationCmd, listAnimations as listAnimationsCmd, updateAnimationPath as updateAnimationPathCmd, trackEntity as trackEntityCmd, controlClock as controlClockCmd, setGlobeLighting as setGlobeLightingCmd, type AnimationMap } from './commands/animation'
-import { setSceneOptions as setSceneOptionsCmd, setPostProcess as setPostProcessCmd } from './commands/scene'
+import { setSceneOptions as setSceneOptionsCmd, setPostProcess as setPostProcessCmd, setEdgeDisplayMode as setEdgeDisplayModeCmd } from './commands/scene'
 
 /**
  * CesiumBridge — AI Agent 操控 Cesium 的统一执行层
@@ -116,6 +120,10 @@ export class CesiumBridge {
         case 'addGeoJsonLayer': {
           const info = await this.addGeoJsonLayer(p as AddGeoJsonLayerParams)
           return { success: true, data: info, message: `GeoJSON layer '${info.name}' added` }
+        }
+        case 'addGeoJsonPrimitive': {
+          const info = await this.addGeoJsonPrimitive(p as AddGeoJsonPrimitiveParams)
+          return { success: true, data: info, message: `GeoJSON primitive '${info.name}' added` }
         }
         case 'addHeatmap': {
           const info = await this.addHeatmap(p as AddHeatmapParams)
@@ -181,6 +189,10 @@ export class CesiumBridge {
         case 'load3dTiles': {
           const info = await this.load3dTiles(p as Load3dTilesParams)
           return { success: true, data: info, message: `3D Tiles '${info.name}' loaded` }
+        }
+        case 'load3dGaussianSplat': {
+          const info = await this.load3dGaussianSplat(p as AddGaussianSplatParams)
+          return { success: true, data: info, message: `3D Gaussian Splat '${info.name}' loaded` }
         }
         case 'loadTerrain':
           this.loadTerrain(p as LoadTerrainParams)
@@ -287,6 +299,10 @@ export class CesiumBridge {
         case 'setPostProcess':
           this.setPostProcess(p as SetPostProcessParams)
           return { success: true, message: 'Post-processing effects updated' }
+        case 'setEdgeDisplayMode': {
+          const result = this.setEdgeDisplayMode(p as SetEdgeDisplayModeParams)
+          return { success: true, data: result, message: `Edge display mode set on ${result.applied} tileset(s)` }
+        }
         case 'setIonToken':
           Cesium.Ion.defaultAccessToken = p.token as string
           return { success: true, message: 'Cesium Ion access token updated' }
@@ -354,6 +370,10 @@ export class CesiumBridge {
     return this._layerManager.addGeoJsonLayer(params)
   }
 
+  addGeoJsonPrimitive(params: AddGeoJsonPrimitiveParams): Promise<LayerInfo> {
+    return this._layerManager.addGeoJsonPrimitive(params)
+  }
+
   addHeatmap(params: AddHeatmapParams): Promise<LayerInfo> {
     return this._layerManager.addHeatmap(params)
   }
@@ -414,6 +434,10 @@ export class CesiumBridge {
 
   load3dTiles(params: Load3dTilesParams): Promise<LayerInfo> {
     return this._layerManager.load3dTiles(params)
+  }
+
+  load3dGaussianSplat(params: AddGaussianSplatParams): Promise<LayerInfo> {
+    return this._layerManager.addGaussianSplat(params)
   }
 
   loadTerrain(params: LoadTerrainParams): void {
@@ -784,6 +808,10 @@ export class CesiumBridge {
 
   setPostProcess(params: SetPostProcessParams): void {
     setPostProcessCmd(this._viewer, params)
+  }
+
+  setEdgeDisplayMode(params: SetEdgeDisplayModeParams): SetEdgeDisplayModeResult {
+    return setEdgeDisplayModeCmd(this._viewer, this._layerManager, params)
   }
 
   // ==================== Batch & Query ====================

@@ -198,7 +198,7 @@ async function _invokeServerSideTool(action: string, params: Record<string, unkn
 }
 
 /** HTTP 请求处理：POST /api/command */
-function handleHttpRequest(req: IncomingMessage, res: ServerResponse) {
+async function handleHttpRequest(req: IncomingMessage, res: ServerResponse) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
@@ -295,6 +295,31 @@ function handleHttpRequest(req: IncomingMessage, res: ServerResponse) {
     }
     res.writeHead(200, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify({ ok: true, tools }))
+    return
+  }
+
+  // GET /proxy?url=... — CORS proxy for local resources
+  if (req.method === 'GET' && req.url?.startsWith('/proxy')) {
+    const parsed = new URL(req.url, `http://localhost:${WS_PORT}`)
+    const targetUrl = parsed.searchParams.get('url')
+    if (!targetUrl) {
+      res.writeHead(400, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: 'Missing ?url= parameter' }))
+      return
+    }
+    try {
+      const proxyResp = await fetch(targetUrl)
+      const contentType = proxyResp.headers.get('content-type') || 'application/octet-stream'
+      const buffer = Buffer.from(await proxyResp.arrayBuffer())
+      res.writeHead(proxyResp.status, {
+        'Content-Type': contentType,
+        'Access-Control-Allow-Origin': '*',
+      })
+      res.end(buffer)
+    } catch (err) {
+      res.writeHead(502, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: `Proxy failed: ${err instanceof Error ? err.message : String(err)}` }))
+    }
     return
   }
 
@@ -506,12 +531,12 @@ server.resource(
 const TOOLSETS: Record<string, string[]> = {
   view: ['flyTo', 'setView', 'getView', 'zoomToExtent', 'saveViewpoint', 'loadViewpoint', 'listViewpoints', 'exportScene'],
   entity: ['addMarker', 'addLabel', 'addModel', 'addPolygon', 'addPolyline', 'updateEntity', 'removeEntity', 'batchAddEntities', 'queryEntities', 'getEntityProperties'],
-  layer: ['addGeoJsonLayer', 'listLayers', 'getLayerSchema', 'removeLayer', 'clearAll', 'setLayerVisibility', 'updateLayerStyle', 'setBasemap'],
+  layer: ['addGeoJsonLayer', 'addGeoJsonPrimitive', 'listLayers', 'getLayerSchema', 'removeLayer', 'clearAll', 'setLayerVisibility', 'updateLayerStyle', 'setBasemap'],
   camera: ['lookAtTransform', 'startOrbit', 'stopOrbit', 'setCameraOptions'],
   'entity-ext': ['addBillboard', 'addBox', 'addCorridor', 'addCylinder', 'addEllipse', 'addRectangle', 'addWall'],
   animation: ['createAnimation', 'controlAnimation', 'removeAnimation', 'listAnimations', 'updateAnimationPath', 'trackEntity', 'controlClock', 'setGlobeLighting'],
   scene: ['setSceneOptions', 'setPostProcess', 'setIonToken'],
-  tiles: ['load3dTiles', 'loadTerrain', 'loadImageryService', 'loadCzml', 'loadKml'],
+  tiles: ['load3dTiles', 'load3dGaussianSplat', 'loadTerrain', 'loadImageryService', 'loadCzml', 'loadKml', 'setEdgeDisplayMode'],
   interaction: ['screenshot', 'highlight', 'measure'],
   trajectory: ['playTrajectory'],
   heatmap: ['addHeatmap'],
@@ -664,6 +689,25 @@ _registerTool(
   { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false, title: 'Add GeoJSON Layer' },
   async (params) => {
     const result = await sendToBrowser('addGeoJsonLayer', params)
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result ?? { success: true }) }] }
+  },
+)
+
+// — addGeoJsonPrimitive
+_registerTool(
+  'addGeoJsonPrimitive',
+  '高性能加载大规模 GeoJSON 数据（10万+ 要素）。绕过 Entity 系统，直接使用 Primitive 渲染，适合海量数据可视化。data 和 url 二选一',
+  {
+    id: z.string().optional().describe('图层ID（不传则自动生成）'),
+    name: z.string().optional().describe('图层显示名称'),
+    data: z.any().optional().describe('GeoJSON 对象（与 url 二选一）'),
+    url: z.string().optional().describe('GeoJSON 文件 URL（与 data 二选一）'),
+    allowPicking: z.boolean().optional().describe('是否允许拾取（默认 true，关闭可提升性能）'),
+    show: z.boolean().optional().describe('是否显示（默认 true）'),
+  },
+  { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false, title: 'Add GeoJSON Primitive' },
+  async (params) => {
+    const result = await sendToBrowser('addGeoJsonPrimitive', params)
     return { content: [{ type: 'text' as const, text: JSON.stringify(result ?? { success: true }) }] }
   },
 )
@@ -1157,6 +1201,24 @@ _registerTool(
   },
 )
 
+// — load3dGaussianSplat
+_registerTool(
+  'load3dGaussianSplat',
+  '加载 3D 高斯泼溅（Gaussian Splat）数据集',
+  {
+    id: z.string().optional().describe('图层ID'),
+    name: z.string().optional().describe('图层名称'),
+    url: z.string().describe('高斯泼溅 tileset.json 的 URL'),
+    maximumScreenSpaceError: z.number().optional().default(16).describe('最大屏幕空间误差（值越小越精细）'),
+    show: z.boolean().optional().default(true).describe('是否显示'),
+  },
+  { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false, title: 'Load 3D Gaussian Splat' },
+  async (params) => {
+    const result = await sendToBrowser('load3dGaussianSplat', params)
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result ?? { success: true }) }] }
+  },
+)
+
 // — loadTerrain
 _registerTool(
   'loadTerrain',
@@ -1231,6 +1293,21 @@ _registerTool(
   { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false, title: 'Load KML/KMZ' },
   async (params) => {
     const result = await sendToBrowser('loadKml', params)
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result ?? { success: true }) }] }
+  },
+)
+
+// — setEdgeDisplayMode
+_registerTool(
+  'setEdgeDisplayMode',
+  '设置 3D Tiles 边缘显示模式（仅表面 / 表面+边缘 / 仅边缘线框）',
+  {
+    tilesetId: z.string().optional().describe('目标图层ID（不传则应用于场景中所有 3D Tiles）'),
+    mode: z.enum(['surfaces_only', 'surfaces_and_edges', 'edges_only']).describe('边缘显示模式：surfaces_only=仅表面, surfaces_and_edges=表面+边缘, edges_only=仅线框'),
+  },
+  { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false, title: 'Set Edge Display Mode' },
+  async (params) => {
+    const result = await sendToBrowser('setEdgeDisplayMode', params)
     return { content: [{ type: 'text' as const, text: JSON.stringify(result ?? { success: true }) }] }
   },
 )

@@ -1,6 +1,7 @@
 import * as Cesium from 'cesium'
-import type { SetSceneOptionsParams, SetPostProcessParams } from '../types'
+import type { SetSceneOptionsParams, SetPostProcessParams, SetEdgeDisplayModeParams, SetEdgeDisplayModeResult } from '../types'
 import { parseColor } from '../utils'
+import type { LayerManager } from './layer'
 
 export function setSceneOptions(viewer: Cesium.Viewer, params: SetSceneOptionsParams): void {
   const { scene } = viewer
@@ -65,4 +66,44 @@ export function setPostProcess(viewer: Cesium.Viewer, params: SetPostProcessPara
 
   // FXAA
   if (params.fxaa !== undefined) stages.fxaa.enabled = params.fxaa
+}
+
+const EDGE_MODE_MAP: Record<string, Cesium.EdgeDisplayMode> = {
+  surfaces_only: Cesium.EdgeDisplayMode.SURFACES_ONLY,
+  surfaces_and_edges: Cesium.EdgeDisplayMode.SURFACES_AND_EDGES,
+  edges_only: Cesium.EdgeDisplayMode.EDGES_ONLY,
+}
+
+export function setEdgeDisplayMode(
+  viewer: Cesium.Viewer,
+  layerManager: LayerManager,
+  params: SetEdgeDisplayModeParams,
+): SetEdgeDisplayModeResult {
+  const mode = EDGE_MODE_MAP[params.mode]
+  if (mode === undefined) {
+    throw new Error(`Invalid edge display mode: ${params.mode}`)
+  }
+
+  let applied = 0
+
+  if (params.tilesetId) {
+    // Apply to specific tileset by layer ID
+    const refs = layerManager.getCesiumRefs(params.tilesetId)
+    if (refs?.tileset) {
+      refs.tileset.edgeDisplayMode = mode
+      applied = 1
+    }
+  } else {
+    // Apply to all 3D Tilesets in scene primitives
+    const primitives = viewer.scene.primitives
+    for (let i = 0; i < primitives.length; i++) {
+      const p = primitives.get(i)
+      if (p instanceof Cesium.Cesium3DTileset) {
+        p.edgeDisplayMode = mode
+        applied++
+      }
+    }
+  }
+
+  return { applied }
 }

@@ -103,6 +103,15 @@ export interface AddGeoJsonLayerParams {
   }
 }
 
+export interface AddGeoJsonPrimitiveParams {
+  id?: string
+  name?: string
+  data?: any
+  url?: string
+  allowPicking?: boolean
+  show?: boolean
+}
+
 export interface AddHeatmapParams {
   id?: string
   name?: string
@@ -132,6 +141,14 @@ export interface Load3dTilesParams {
   ionAssetId?: number
   maximumScreenSpaceError?: number
   heightOffset?: number
+}
+
+export interface AddGaussianSplatParams {
+  id?: string
+  name?: string
+  url: string
+  maximumScreenSpaceError?: number
+  show?: boolean
 }
 
 export interface LoadTerrainParams {
@@ -634,6 +651,17 @@ export interface SetPostProcessParams {
   aoLengthCap?: number
   aoStepSize?: number
   fxaa?: boolean
+}
+
+// ==================== Edge Display Mode ====================
+
+export interface SetEdgeDisplayModeParams {
+  tilesetId?: string
+  mode: 'surfaces_only' | 'surfaces_and_edges' | 'edges_only'
+}
+
+export interface SetEdgeDisplayModeResult {
+  applied: number
 }
 
 export interface AnimationInfo {
