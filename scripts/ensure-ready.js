@@ -1,4 +1,4 @@
-const { spawn, execSync } = require('child_process');
+const { spawn } = require('child_process');
 const { resolve } = require('path');
 const http = require('http');
 
@@ -15,7 +15,9 @@ const VIEWER_URL = `http://localhost:${HTTP_PORT}${qs}`;
 
 function isServerRunning() {
   return new Promise((res) => {
-    const req = http.get(`http://localhost:${HTTP_PORT}`, () => res(true));
+    const req = http.get(`http://localhost:${HTTP_PORT}`, (r) => {
+      res(r.statusCode === 200);
+    });
     req.on('error', () => res(false));
     req.setTimeout(1500, () => { req.destroy(); res(false); });
   });
@@ -26,7 +28,7 @@ function startViewerServer() {
   const child = spawn('node', [serverScript], {
     detached: true,
     stdio: 'ignore',
-    env: { ...process.env, CESIUM_HTTP_PORT: HTTP_PORT },
+    env: { ...process.env, CESIUM_HTTP_PORT: HTTP_PORT, CLAUDE_PLUGIN_ROOT: PLUGIN_ROOT },
   });
   child.unref();
 }
@@ -48,8 +50,7 @@ function openBrowser(url) {
   if (!running) {
     startViewerServer();
     setTimeout(() => openBrowser(VIEWER_URL), 1500);
-  } else {
-    openBrowser(VIEWER_URL);
   }
+  // If already running, don't open browser again
   process.stdout.write(JSON.stringify({ continue: true, suppressOutput: true }));
 })();
