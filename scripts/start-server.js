@@ -1,10 +1,8 @@
-import { createServer } from 'http';
-import { readFileSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+const { createServer } = require('http');
+const { readFileSync } = require('fs');
+const { resolve } = require('path');
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const PLUGIN_ROOT = resolve(__dirname, '..');
+const PLUGIN_ROOT = process.env.CLAUDE_PLUGIN_ROOT || resolve(__dirname, '..');
 const STATIC_DIR = resolve(PLUGIN_ROOT, 'static');
 const HTTP_PORT = parseInt(process.env.CESIUM_HTTP_PORT || '9101');
 
