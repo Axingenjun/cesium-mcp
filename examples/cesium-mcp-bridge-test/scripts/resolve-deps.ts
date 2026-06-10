@@ -33,3 +33,8 @@ export function getCesiumPaths(): CesiumPaths {
     widgets: resolvePkgRoot('@cesium/widgets'),
   }
 }
+
+/** patch-package 仅修补 repo 根 node_modules，示例子目录副本未打补丁 */
+export function getHeatmapEntry(): string {
+  return join(repoRoot, 'node_modules/heatmap.js/build/heatmap.js')
+}
