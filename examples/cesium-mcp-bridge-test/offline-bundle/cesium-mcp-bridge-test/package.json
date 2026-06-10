@@ -1,0 +1,24 @@
+{
+  "name": "cesium-mcp-bridge-test",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Browser dev playground for cesium-mcp-bridge (source HMR, no dist build)",
+  "type": "module",
+  "scripts": {
+    "dev": "node node_modules/vite/bin/vite.js",
+    "dev:force": "vite --force",
+    "build": "vite build",
+    "preview": "vite preview",
+    "prepare:offline": "node scripts/prepare-offline-bundle.mjs"
+  },
+  "dependencies": {
+    "cesium-mcp-bridge": "file:../cesium-mcp-bridge",
+    "cesium": "~1.142.0",
+    "heatmap.js": "^2.0.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "vite": "^6.0.0",
+    "vite-plugin-cesium": "^1.2.23"
+  }
+}

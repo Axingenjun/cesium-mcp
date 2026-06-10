@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>cesium-mcp-bridge-test</title>
+</head>
+<body>
+
+<div class="map-wrap">
+  <div id="cesiumContainer"></div>
+  <button class="panel-toggle" id="panelToggle" onclick="togglePanel()" title="Toggle Panel">&#9664;</button>
+  <div id="screenshotPreview">
+    <img id="ssImg" alt="screenshot">
+    <div class="bar">
+      <span id="ssTime"></span>
+      <div class="screenshot-actions">
+        <button type="button" onclick="downloadScreenshot()">Download</button>
+        <button type="button" onclick="closeScreenshot()">Close</button>
+      </div>
+    </div>
+  </div>
+  <div class="coord-bar" id="coordBar">--</div>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <h1>Cesium MCP <span>Bridge Test</span></h1>
+    <div class="header-actions">
+      <span id="wsStatus" class="badge err" data-i18n="ws.offline">离线</span>
+      <button type="button" class="toggle-btn" onclick="toggleLang()" id="langBtn" title="中/EN">文</button>
+      <button type="button" class="toggle-btn" onclick="toggleTheme()" id="themeBtn" title="Theme">&#9789;</button>
+    </div>
+  </div>
+
+  <div class="panel-scroll">
+    <div class="section">
+      <div class="section-title" onclick="toggleSection(this)">
+        <span data-i18n="sec.custom">自定义 JSON 命令</span> <span class="arrow">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <div class="field-row">
+          <label class="field-label" for="customCmdSelect" data-i18n="custom.cmdLabel">选择命令</label>
+          <select id="customCmdSelect" class="field-select" onchange="applySelectedCommand()"></select>
+        </div>
+        <textarea id="customCmd" class="custom-textarea" spellcheck="false">{"action":"flyTo","params":{"longitude":116.39,"latitude":39.91,"height":5000}}</textarea>
+        <button type="button" class="btn primary field-action" onclick="runCustomCmd()" data-i18n="btn.execute">执行</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title" onclick="toggleSection(this)">
+        <span data-i18n="sec.view">视图控制</span> <span class="arrow">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <div class="field-row">
+          <label class="field-label" for="citySelect" data-i18n="view.cityLabel">选择城市</label>
+          <select id="citySelect" class="field-select" onchange="flyToSelectedCity()"></select>
+        </div>
+        <div class="btn-grid view-actions">
+          <button type="button" class="btn primary" onclick="cmd('getView',{})" data-i18n="btn.getView">获取视角</button>
+          <button type="button" class="btn primary" onclick="cmd('screenshot',{})" data-i18n="btn.screenshot">截图</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title" onclick="toggleSection(this)">
+        <span data-i18n="sec.geojson">GeoJSON 图层</span> <span class="arrow">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <div class="btn-grid">
+          <button type="button" class="btn primary" onclick="addCitiesLayer()" data-i18n="btn.chinaCities">中国主要城市</button>
+          <button type="button" class="btn primary" onclick="addRandomPolygon()" data-i18n="btn.randomPoly">随机多边形</button>
+          <button type="button" class="btn primary" onclick="addPolylineLayer()" data-i18n="btn.airline">航线图层</button>
+        </div>
+        <div class="btn-grid section-actions">
+          <button type="button" class="btn destructive" onclick="cmd('removeLayer',{id:'cities'})" data-i18n="btn.rmCities">- 城市</button>
+          <button type="button" class="btn destructive" onclick="cmd('removeLayer',{id:'polygon1'})" data-i18n="btn.rmPoly">- 多边形</button>
+          <button type="button" class="btn destructive" onclick="cmd('removeLayer',{id:'airline1'})" data-i18n="btn.rmAirline">- 航线</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title" onclick="toggleSection(this)">
+        <span data-i18n="sec.markers">标注与实体</span> <span class="arrow">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <div class="btn-grid">
+          <button type="button" class="btn" onclick="addCityMarkers()" data-i18n="btn.cityLabels">城市标注</button>
+          <button type="button" class="btn" onclick="cmd('addMarker',{id:'custom1',longitude:116.39,latitude:39.91,label:'天安门',color:'#ef4444'})" data-i18n="btn.tiananmen">天安门</button>
+          <button type="button" class="btn" onclick="cmd('addMarker',{id:'custom2',longitude:121.49,latitude:31.24,label:'外滩',color:'#3b82f6'})" data-i18n="btn.bund">外滩</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title" onclick="toggleSection(this)">
+        <span data-i18n="sec.basemap">底图切换</span> <span class="arrow">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <div class="field-row">
+          <label class="field-label" for="basemapSelect" data-i18n="basemap.label">选择底图</label>
+          <select id="basemapSelect" class="field-select" onchange="applySelectedBasemap()"></select>
+        </div>
+        <div class="hint" data-i18n="hint.basemap">在线底图需外网；默认使用 Cesium 内置 Natural Earth II</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title" onclick="toggleSection(this)">
+        <span data-i18n="sec.trajectory">轨迹回放</span> <span class="arrow">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <div class="btn-grid">
+          <button type="button" class="btn primary" onclick="playBeijingToShanghai()" data-i18n="btn.bjsh">北京-上海轨迹</button>
+          <button type="button" class="btn primary" onclick="playCircleTrajectory()" data-i18n="btn.circle">环形轨迹</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title" onclick="toggleSection(this)">
+        <span data-i18n="sec.heatmap">热力图</span> <span class="arrow">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <div class="btn-grid">
+          <button type="button" class="btn primary" onclick="addHeatmap()" data-i18n="btn.popHeat">城市人口热力图</button>
+          <button type="button" class="btn primary" onclick="addRandomHeatmap()" data-i18n="btn.randHeat">随机 200 点</button>
+          <button type="button" class="btn destructive" onclick="cmd('removeLayer',{id:'heatmap1'})" data-i18n="btn.rmHeat">- 热力图</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title" onclick="toggleSection(this)">
+        <span data-i18n="sec.3d">3D Tiles / 地形 / 影像</span> <span class="arrow">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <div class="btn-grid">
+          <button type="button" class="btn primary" onclick="load3dTilesDemo()" data-i18n="btn.3dBuildings">3D 建筑</button>
+          <button type="button" class="btn primary" onclick="loadTerrainDemo()" data-i18n="btn.terrain">世界地形</button>
+          <button type="button" class="btn primary" onclick="loadImageryDemo()">Sentinel-2</button>
+          <button type="button" class="btn destructive" onclick="cmd('removeLayer',{id:'tiles-demo'})">- 3D Tiles</button>
+        </div>
+        <div class="hint" data-i18n="hint.3d">使用 Cesium Ion 示例数据 (96188, 1, 3954)，需外网</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title" onclick="toggleSection(this)">
+        <span data-i18n="sec.style">样式与高亮</span> <span class="arrow">&#9660;</span>
+      </div>
+      <div class="section-body">
+        <div class="btn-grid">
+          <button type="button" class="btn" onclick="cmd('updateLayerStyle',{layerId:'cities',layerStyle:{color:'#ef4444',opacity:0.5}})" data-i18n="btn.redStyle">红色样式</button>
+          <button type="button" class="btn" onclick="cmd('updateLayerStyle',{layerId:'cities',layerStyle:{color:'#10b981',opacity:0.5}})" data-i18n="btn.greenStyle">绿色样式</button>
+          <button type="button" class="btn" onclick="cmd('highlight',{layerId:'cities',featureIndex:0,color:'#fbbf24'})" data-i18n="btn.hlFirst">高亮 #0</button>
+          <button type="button" class="btn" onclick="cmd('highlight',{clear:true})" data-i18n="btn.clearHl">清除高亮</button>
+        </div>
+        <div class="hint" data-i18n="hint.style">需先添加城市图层</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
