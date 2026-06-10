@@ -1,4 +1,4 @@
-import { BRIDGE_COMMANDS } from '../demos/bridge-commands'
+import { BRIDGE_COMMANDS, getCommandPreset } from '../demos/bridge-commands'
 import { t } from './i18n'
 
 const SELECT_ID = 'customCmdSelect'
@@ -53,7 +53,7 @@ export function applySelectedCommand(): void {
   const textarea = document.getElementById('customCmd') as HTMLTextAreaElement | null
   if (!select?.value || !textarea) return
 
-  const preset = BRIDGE_COMMANDS.find((c) => c.action === select.value)
+  const preset = getCommandPreset(select.value)
   if (!preset) return
 
   textarea.value = JSON.stringify({ action: preset.action, params: preset.params }, null, 2)
