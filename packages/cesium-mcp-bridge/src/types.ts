@@ -1,6 +1,3 @@
-import type * as Cesium from 'cesium'
-import type { ColorInput } from './utils'
-
 // ==================== Command & Result ====================
 
 export interface BridgeCommand {
@@ -437,6 +434,12 @@ export interface MaterialSpec {
   cellAlpha?: number
   lineCount?: { x: number; y: number }
 }
+
+
+/**
+ * 颜色输入格式：CSS 字符串或 RGBA 对象 (0-1 范围)
+ */
+export type ColorInput = string | { red: number; green: number; blue: number; alpha?: number }
 
 export type MaterialInput = ColorInput | MaterialSpec
 

@@ -1,10 +1,5 @@
 import * as Cesium from 'cesium'
-import type { MaterialInput, MaterialSpec, OrientationInput } from './types'
-
-/**
- * 颜色输入格式：CSS 字符串或 RGBA 对象 (0-1 范围)
- */
-export type ColorInput = string | { red: number; green: number; blue: number; alpha?: number }
+import type { ColorInput, MaterialInput, MaterialSpec, OrientationInput } from './types'
 
 /**
  * 将 CSS 字符串或 RGBA 对象转为 Cesium.Color
