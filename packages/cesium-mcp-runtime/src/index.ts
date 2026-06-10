@@ -574,7 +574,7 @@ server.resource(
 const TOOLSETS: Record<string, string[]> = {
   view: ['flyTo', 'setView', 'getView', 'zoomToExtent', 'saveViewpoint', 'loadViewpoint', 'listViewpoints', 'exportScene'],
   entity: ['addMarker', 'addLabel', 'addModel', 'addPolygon', 'addPolyline', 'updateEntity', 'removeEntity', 'batchAddEntities', 'queryEntities', 'getEntityProperties'],
-  layer: ['addGeoJsonLayer', 'addGeoJsonPrimitive', 'listLayers', 'getLayerSchema', 'removeLayer', 'clearAll', 'setLayerVisibility', 'updateLayerStyle', 'setBasemap'],
+  layer: ['addGeoJsonLayer', 'addGeoJsonPrimitive', 'addYellowModel', 'listLayers', 'getLayerSchema', 'removeLayer', 'clearAll', 'setLayerVisibility', 'updateLayerStyle', 'setBasemap'],
   camera: ['lookAtTransform', 'startOrbit', 'stopOrbit', 'setCameraOptions'],
   'entity-ext': ['addBillboard', 'addBox', 'addCorridor', 'addCylinder', 'addEllipse', 'addRectangle', 'addWall'],
   animation: ['createAnimation', 'controlAnimation', 'removeAnimation', 'listAnimations', 'updateAnimationPath', 'trackEntity', 'controlClock', 'setGlobeLighting'],
@@ -732,6 +732,24 @@ _registerTool(
   { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false, title: 'Add GeoJSON Layer' },
   async (params) => {
     const result = await sendToBrowser('addGeoJsonLayer', params)
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result ?? { success: true }) }] }
+  },
+)
+
+// — addYellowModel
+_registerTool(
+  'addYellowModel',
+  '添加黄色渐变挤压面模型（仅支持含高度信息的 GeoJSON 面数据，底面为面最低点，顶面按 perPositionHeight 相对高度挤压，含边框线）',
+  {
+    id: z.string().optional().describe('图层ID（不传则自动生成）'),
+    name: z.string().optional().describe('图层显示名称'),
+    data: z.record(z.unknown()).optional().describe('GeoJSON FeatureCollection（仅 Polygon/MultiPolygon，坐标需含高度，与 url 二选一）'),
+    url: z.string().optional().describe('GeoJSON 文件 URL（与 data 二选一）'),
+    style: z.record(z.unknown()).optional().describe('样式（strokeWidth, color, opacity, outlineColor）'),
+  },
+  { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false, title: 'Add Yellow Extruded Model' },
+  async (params) => {
+    const result = await sendToBrowser('addYellowModel', params)
     return { content: [{ type: 'text' as const, text: JSON.stringify(result ?? { success: true }) }] }
   },
 )

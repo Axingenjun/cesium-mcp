@@ -109,6 +109,27 @@ export interface AddGeoJsonPrimitiveParams {
   show?: boolean
 }
 
+/** 黄色渐变挤压面模型样式（仅 Polygon GeoJSON） */
+export interface YellowModelStyle {
+  /** 边框线宽，默认 2 */
+  strokeWidth?: number
+  /** 面填充色，默认 #FF8F00 */
+  color?: string
+  /** 底部最大不透明度（顶部渐隐为 0），默认 0.85 */
+  opacity?: number
+  /** 边框线颜色，默认 #B8860B */
+  outlineColor?: string
+}
+
+export interface AddYellowModelParams {
+  id?: string
+  name?: string
+  data?: Record<string, unknown>
+  url?: string
+  dataRefId?: string
+  style?: YellowModelStyle
+}
+
 export interface AddHeatmapParams {
   id?: string
   name?: string

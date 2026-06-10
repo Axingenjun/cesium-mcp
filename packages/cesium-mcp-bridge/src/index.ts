@@ -16,6 +16,8 @@ export type {
   CategoryStyle,
   AddGeoJsonLayerParams,
   AddGeoJsonPrimitiveParams,
+  AddYellowModelParams,
+  YellowModelStyle,
   AddHeatmapParams,
   SetBasemapParams,
   Load3dTilesParams,
@@ -79,5 +81,5 @@ export type {
   // Viewpoint Bookmarks
   SaveViewpointParams,
   LoadViewpointParams,
+  ColorInput
 } from './types'
-export type { ColorInput } from './utils'

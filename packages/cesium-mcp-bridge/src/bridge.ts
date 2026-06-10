@@ -8,6 +8,7 @@ import type {
   ZoomToExtentParams,
   AddGeoJsonLayerParams,
   AddGeoJsonPrimitiveParams,
+  AddYellowModelParams,
   AddHeatmapParams,
   AddLabelParams,
   AddMarkerParams,
@@ -124,6 +125,10 @@ export class CesiumBridge {
         case 'addGeoJsonPrimitive': {
           const info = await this.addGeoJsonPrimitive(p as AddGeoJsonPrimitiveParams)
           return { success: true, data: info, message: `GeoJSON primitive '${info.name}' added` }
+        }
+        case 'addYellowModel': {
+          const info = await this.addYellowModel(p as AddYellowModelParams)
+          return { success: true, data: info, message: `Yellow model layer '${info.name}' added` }
         }
         case 'addHeatmap': {
           const info = await this.addHeatmap(p as AddHeatmapParams)
@@ -374,6 +379,10 @@ export class CesiumBridge {
     return this._layerManager.addGeoJsonPrimitive(params)
   }
 
+  addYellowModel(params: AddYellowModelParams): Promise<LayerInfo> {
+    return this._layerManager.addYellowModel(params)
+  }
+
   addHeatmap(params: AddHeatmapParams): Promise<LayerInfo> {
     return this._layerManager.addHeatmap(params)
   }
@@ -525,8 +534,9 @@ export class CesiumBridge {
     // 优先检查是否已有同 dataRefId 的 GeoJSON 图层 → 将标注附加到现有实体上
     if (params.dataRefId) {
       const existingRefs = this._layerManager.getCesiumRefs(params.dataRefId)
-      if (existingRefs?.dataSource) {
-        return this._attachLabelsToDataSource(existingRefs.dataSource, params)
+      const ds = existingRefs?.dataSource
+      if (ds && !(ds instanceof Cesium.CustomDataSource)) {
+        return this._attachLabelsToDataSource(ds, params)
       }
     }
 

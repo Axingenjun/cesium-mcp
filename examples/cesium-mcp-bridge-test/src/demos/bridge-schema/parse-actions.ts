@@ -19,7 +19,7 @@ const SECTION_GROUP: [RegExp, CommandGroup][] = [
 ]
 
 const LAYER_ACTIONS = new Set([
-  'addGeoJsonLayer', 'addGeoJsonPrimitive', 'addHeatmap', 'listLayers', 'getLayerSchema',
+  'addGeoJsonLayer', 'addGeoJsonPrimitive', 'addYellowModel', 'addHeatmap', 'listLayers', 'getLayerSchema',
   'removeLayer', 'setLayerVisibility', 'updateLayerStyle', 'setBasemap', 'clearAll',
 ])
 
@@ -57,7 +57,7 @@ const INLINE_PARAMS: Record<string, Record<string, unknown>> = {
 function inferGroupFromParamsType(paramsType?: string): CommandGroup | undefined {
   if (!paramsType) return undefined
   if (/FlyTo|SetView|ViewState|ZoomTo|LookAt|Orbit|Camera|Viewpoint/i.test(paramsType)) return 'view'
-  if (/Layer|Basemap|GeoJson|Heatmap/i.test(paramsType)) return 'layer'
+  if (/Layer|Basemap|GeoJson|Heatmap|YellowModel/i.test(paramsType)) return 'layer'
   if (/Screenshot|Highlight|Measure/i.test(paramsType)) return 'interaction'
   if (/Animation|Trajectory|Clock|TrackEntity/i.test(paramsType)) return 'animation'
   if (/Tiles|Terrain|Imagery|Czml|Kml|Scene|PostProcess|Globe|Gaussian|EdgeDisplay/i.test(paramsType)) return 'scene'
@@ -71,7 +71,7 @@ function inferGroupFromParamsType(paramsType?: string): CommandGroup | undefined
 function inferGroupFromActionName(action: string): CommandGroup | undefined {
   if (/^flyTo/i.test(action)) return 'view'
   if (/^(setView|getView|zoomTo|lookAt|startOrbit|stopOrbit|setCamera|saveViewpoint|loadViewpoint|listViewpoints)/.test(action)) return 'view'
-  if (/^(addGeoJson|addHeatmap|listLayers|getLayerSchema|removeLayer|setLayer|updateLayer|setBasemap|clearAll)/.test(action)) return 'layer'
+  if (/^(addGeoJson|addYellowModel|addHeatmap|listLayers|getLayerSchema|removeLayer|setLayer|updateLayer|setBasemap|clearAll)/.test(action)) return 'layer'
   if (/^(screenshot|highlight|measure)/.test(action)) return 'interaction'
   if (/^(load3d|loadTerrain|loadImagery|loadCzml|loadKml|setScene|setPost|setEdge|setGlobe|setIon|exportScene)/.test(action)) return 'scene'
   if (/^(playTrajectory|createAnimation|controlAnimation|removeAnimation|listAnimations|updateAnimation|trackEntity|controlClock)/.test(action)) return 'animation'

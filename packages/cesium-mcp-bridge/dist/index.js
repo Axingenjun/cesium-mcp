@@ -1,49 +1,49 @@
-import * as Cesium3 from 'cesium';
+import * as Cesium4 from 'cesium';
 import h337 from 'heatmap.js';
 
 // src/bridge.ts
 function parseColor(input) {
   if (typeof input === "string") {
-    return Cesium3.Color.fromCssColorString(input);
+    return Cesium4.Color.fromCssColorString(input);
   }
-  return new Cesium3.Color(input.red, input.green, input.blue, input.alpha ?? 1);
+  return new Cesium4.Color(input.red, input.green, input.blue, input.alpha ?? 1);
 }
 function resolveMaterial(input) {
-  if (!input) return Cesium3.Color.WHITE;
+  if (!input) return Cesium4.Color.WHITE;
   if (typeof input === "string" || "red" in input) return parseColor(input);
   const spec = input;
   switch (spec.type) {
     case "color":
-      return spec.color ? parseColor(spec.color) : Cesium3.Color.WHITE;
+      return spec.color ? parseColor(spec.color) : Cesium4.Color.WHITE;
     case "image":
-      return new Cesium3.ImageMaterialProperty({ image: spec.image });
+      return new Cesium4.ImageMaterialProperty({ image: spec.image });
     case "checkerboard":
-      return new Cesium3.CheckerboardMaterialProperty({
+      return new Cesium4.CheckerboardMaterialProperty({
         evenColor: spec.evenColor ? parseColor(spec.evenColor) : void 0,
         oddColor: spec.oddColor ? parseColor(spec.oddColor) : void 0
       });
     case "stripe":
-      return new Cesium3.StripeMaterialProperty({
-        orientation: spec.orientation === "vertical" ? Cesium3.StripeOrientation.VERTICAL : Cesium3.StripeOrientation.HORIZONTAL,
+      return new Cesium4.StripeMaterialProperty({
+        orientation: spec.orientation === "vertical" ? Cesium4.StripeOrientation.VERTICAL : Cesium4.StripeOrientation.HORIZONTAL,
         evenColor: spec.evenColor ? parseColor(spec.evenColor) : void 0,
         oddColor: spec.oddColor ? parseColor(spec.oddColor) : void 0
       });
     case "grid":
-      return new Cesium3.GridMaterialProperty({
+      return new Cesium4.GridMaterialProperty({
         color: spec.color ? parseColor(spec.color) : void 0,
         cellAlpha: spec.cellAlpha
       });
     default:
-      return Cesium3.Color.WHITE;
+      return Cesium4.Color.WHITE;
   }
 }
 function resolveOrientation(position, orientation) {
-  const hpr = Cesium3.HeadingPitchRoll.fromDegrees(
+  const hpr = Cesium4.HeadingPitchRoll.fromDegrees(
     orientation.heading,
     orientation.pitch,
     orientation.roll
   );
-  return Cesium3.Transforms.headingPitchRollQuaternion(position, hpr);
+  return Cesium4.Transforms.headingPitchRollQuaternion(position, hpr);
 }
 function validateCoordinate(longitude, latitude, height) {
   if (longitude < -180 || longitude > 180) {
@@ -59,7 +59,7 @@ function validateCoordinate(longitude, latitude, height) {
 
 // src/commands/view.ts
 function _heightToRange(height, pitchDeg) {
-  const absSin = Math.abs(Math.sin(Cesium3.Math.toRadians(pitchDeg)));
+  const absSin = Math.abs(Math.sin(Cesium4.Math.toRadians(pitchDeg)));
   return absSin > 0.05 ? height / absSin : height * 10;
 }
 function flyTo(viewer, params) {
@@ -73,14 +73,14 @@ function flyTo(viewer, params) {
     duration = 2
   } = params;
   validateCoordinate(longitude, latitude, height);
-  const target = Cesium3.Cartesian3.fromDegrees(longitude, latitude, 0);
+  const target = Cesium4.Cartesian3.fromDegrees(longitude, latitude, 0);
   const range = _heightToRange(height, pitch);
   return new Promise((resolve) => {
-    viewer.camera.flyToBoundingSphere(new Cesium3.BoundingSphere(target, 0), {
+    viewer.camera.flyToBoundingSphere(new Cesium4.BoundingSphere(target, 0), {
       duration,
-      offset: new Cesium3.HeadingPitchRange(
-        Cesium3.Math.toRadians(heading),
-        Cesium3.Math.toRadians(pitch),
+      offset: new Cesium4.HeadingPitchRange(
+        Cesium4.Math.toRadians(heading),
+        Cesium4.Math.toRadians(pitch),
         range
       ),
       complete: resolve
@@ -90,27 +90,27 @@ function flyTo(viewer, params) {
 function setView(viewer, params) {
   const { longitude, latitude, height = 5e4, heading = 0, pitch = -45, roll = 0 } = params;
   validateCoordinate(longitude, latitude, height);
-  const target = Cesium3.Cartesian3.fromDegrees(longitude, latitude, 0);
+  const target = Cesium4.Cartesian3.fromDegrees(longitude, latitude, 0);
   const range = _heightToRange(height, pitch);
   viewer.camera.lookAt(
     target,
-    new Cesium3.HeadingPitchRange(
-      Cesium3.Math.toRadians(heading),
-      Cesium3.Math.toRadians(pitch),
+    new Cesium4.HeadingPitchRange(
+      Cesium4.Math.toRadians(heading),
+      Cesium4.Math.toRadians(pitch),
       range
     )
   );
-  viewer.camera.lookAtTransform(Cesium3.Matrix4.IDENTITY);
+  viewer.camera.lookAtTransform(Cesium4.Matrix4.IDENTITY);
 }
 function getView(viewer) {
   const carto = viewer.camera.positionCartographic;
   return {
-    longitude: Cesium3.Math.toDegrees(carto.longitude),
-    latitude: Cesium3.Math.toDegrees(carto.latitude),
+    longitude: Cesium4.Math.toDegrees(carto.longitude),
+    latitude: Cesium4.Math.toDegrees(carto.latitude),
     height: carto.height,
-    heading: Cesium3.Math.toDegrees(viewer.camera.heading),
-    pitch: Cesium3.Math.toDegrees(viewer.camera.pitch),
-    roll: Cesium3.Math.toDegrees(viewer.camera.roll)
+    heading: Cesium4.Math.toDegrees(viewer.camera.heading),
+    pitch: Cesium4.Math.toDegrees(viewer.camera.pitch),
+    roll: Cesium4.Math.toDegrees(viewer.camera.roll)
   };
 }
 function zoomToExtent(viewer, params) {
@@ -118,7 +118,7 @@ function zoomToExtent(viewer, params) {
   const [west, south, east, north] = bbox;
   return new Promise((resolve) => {
     viewer.camera.flyTo({
-      destination: Cesium3.Rectangle.fromDegrees(west, south, east, north),
+      destination: Cesium4.Rectangle.fromDegrees(west, south, east, north),
       duration,
       complete: resolve
     });
@@ -143,6 +143,89 @@ function loadViewpoint(viewer, params) {
 }
 function listViewpoints() {
   return Array.from(_viewpoints.entries()).map(([name, state]) => ({ name, state }));
+}
+var MATERIAL_TYPE = "BridgeYellowHeightGradient";
+var registered = false;
+var FABRIC_SOURCE = `
+float bridgeEllipsoidHeight(vec3 positionWC) {
+  vec3 oneOverRadii = czm_ellipsoidInverseRadii;
+  vec3 oneOverRadiiSquared = oneOverRadii * oneOverRadii;
+  vec3 surface = czm_scaleToGeodeticSurface(
+    positionWC,
+    oneOverRadii,
+    oneOverRadiiSquared,
+    czm_epsilon7
+  );
+  vec3 h = positionWC - surface;
+  return sign(dot(h, positionWC)) * length(h);
+}
+
+czm_material czm_getMaterial(czm_materialInput materialInput)
+{
+  czm_material material = czm_getDefaultMaterial(materialInput);
+  vec3 positionEC = -materialInput.positionToEyeEC;
+  vec3 positionWC = (czm_inverseModelView * vec4(positionEC, 1.0)).xyz;
+  float height = bridgeEllipsoidHeight(positionWC);
+  float t = clamp((height - minHeight) / max(maxHeight - minHeight, 0.001), 0.0, 1.0);
+  vec4 low = czm_gammaCorrect(lowColor);
+  vec4 high = czm_gammaCorrect(highColor);
+  material.diffuse = mix(low.rgb, high.rgb, t);
+  material.alpha = mix(low.a, high.a, t);
+  return material;
+}
+`;
+function ensureFabricRegistered() {
+  if (registered) return;
+  registered = true;
+  Cesium4.Material._materialCache.addMaterial(MATERIAL_TYPE, {
+    fabric: {
+      type: MATERIAL_TYPE,
+      uniforms: {
+        minHeight: 0,
+        maxHeight: 100,
+        lowColor: new Cesium4.Color(1, 0.98, 0.77, 0.85),
+        highColor: new Cesium4.Color(1, 0.56, 0, 0.9)
+      },
+      source: FABRIC_SOURCE
+    },
+    translucent: true
+  });
+}
+var timeScratch = new Cesium4.JulianDate();
+var YellowHeightGradientMaterialProperty = class _YellowHeightGradientMaterialProperty {
+  constructor(minHeight, maxHeight, lowColor, highColor) {
+    this.definitionChanged = new Cesium4.Event();
+    ensureFabricRegistered();
+    this._minHeight = minHeight;
+    this._maxHeight = maxHeight;
+    this._lowColor = lowColor;
+    this._highColor = highColor;
+  }
+  get isConstant() {
+    return true;
+  }
+  getType(_time) {
+    return MATERIAL_TYPE;
+  }
+  getValue(time, result) {
+    if (!Cesium4.defined(time)) {
+      time = Cesium4.JulianDate.now(timeScratch);
+    }
+    if (!Cesium4.defined(result)) {
+      result = {};
+    }
+    result.minHeight = this._minHeight;
+    result.maxHeight = this._maxHeight;
+    result.lowColor = Cesium4.Color.clone(this._lowColor, result.lowColor);
+    result.highColor = Cesium4.Color.clone(this._highColor, result.highColor);
+    return result;
+  }
+  equals(other) {
+    return this === other || other instanceof _YellowHeightGradientMaterialProperty && this._minHeight === other._minHeight && this._maxHeight === other._maxHeight && Cesium4.Color.equals(this._lowColor, other._lowColor) && Cesium4.Color.equals(this._highColor, other._highColor);
+  }
+};
+function createYellowHeightGradientMaterialProperty(minHeight, maxHeight, lowColor, highColor) {
+  return new YellowHeightGradientMaterialProperty(minHeight, maxHeight, lowColor, highColor);
 }
 
 // src/commands/basemap-presets.ts
@@ -220,7 +303,7 @@ var LayerManager = class {
     const pointSize = style?.pointSize ?? 10;
     this.removeLayer(layerId);
     const cesiumColor = parseColor(color).withAlpha(opacity);
-    const ds = await Cesium3.GeoJsonDataSource.load(url ?? data, {
+    const ds = await Cesium4.GeoJsonDataSource.load(url ?? data, {
       stroke: cesiumColor,
       fill: cesiumColor.withAlpha(opacity * 0.4),
       strokeWidth: 3,
@@ -234,33 +317,33 @@ var LayerManager = class {
     const labelField = params.labelField;
     const ls = params.labelStyle;
     const labelFont = ls?.font ?? "12px sans-serif";
-    const labelFillColor = ls?.fillColor ? parseColor(ls.fillColor) : Cesium3.Color.WHITE;
-    const labelOutlineColor = ls?.outlineColor ? parseColor(ls.outlineColor) : Cesium3.Color.BLACK;
+    const labelFillColor = ls?.fillColor ? parseColor(ls.fillColor) : Cesium4.Color.WHITE;
+    const labelOutlineColor = ls?.outlineColor ? parseColor(ls.outlineColor) : Cesium4.Color.BLACK;
     const labelOutlineWidth = ls?.outlineWidth ?? 2;
-    const labelOffset = ls?.pixelOffset ? new Cesium3.Cartesian2(ls.pixelOffset[0], ls.pixelOffset[1]) : new Cesium3.Cartesian2(0, -pointSize - 4);
+    const labelOffset = ls?.pixelOffset ? new Cesium4.Cartesian2(ls.pixelOffset[0], ls.pixelOffset[1]) : new Cesium4.Cartesian2(0, -pointSize - 4);
     for (let i = 0; i < entities.length; i++) {
       const e = entities[i];
       if (e.billboard) {
-        e.billboard.image = new Cesium3.ConstantProperty(circleImage);
-        e.billboard.width = new Cesium3.ConstantProperty(pointSize * 2);
-        e.billboard.height = new Cesium3.ConstantProperty(pointSize * 2);
-        e.billboard.heightReference = new Cesium3.ConstantProperty(Cesium3.HeightReference.CLAMP_TO_GROUND);
-        e.billboard.disableDepthTestDistance = new Cesium3.ConstantProperty(Number.POSITIVE_INFINITY);
+        e.billboard.image = new Cesium4.ConstantProperty(circleImage);
+        e.billboard.width = new Cesium4.ConstantProperty(pointSize * 2);
+        e.billboard.height = new Cesium4.ConstantProperty(pointSize * 2);
+        e.billboard.heightReference = new Cesium4.ConstantProperty(Cesium4.HeightReference.CLAMP_TO_GROUND);
+        e.billboard.disableDepthTestDistance = new Cesium4.ConstantProperty(Number.POSITIVE_INFINITY);
       }
       if (labelField && e.properties && e.position) {
-        const val = e.properties[labelField]?.getValue(Cesium3.JulianDate.now());
+        const val = e.properties[labelField]?.getValue(Cesium4.JulianDate.now());
         if (val != null && val !== "") {
-          e.label = new Cesium3.LabelGraphics({
+          e.label = new Cesium4.LabelGraphics({
             text: String(val),
             font: labelFont,
             fillColor: labelFillColor,
             outlineColor: labelOutlineColor,
             outlineWidth: labelOutlineWidth,
-            style: Cesium3.LabelStyle.FILL_AND_OUTLINE,
+            style: Cesium4.LabelStyle.FILL_AND_OUTLINE,
             pixelOffset: labelOffset,
             scale: ls?.scale ?? 1,
-            verticalOrigin: Cesium3.VerticalOrigin.BOTTOM,
-            heightReference: Cesium3.HeightReference.CLAMP_TO_GROUND,
+            verticalOrigin: Cesium4.VerticalOrigin.BOTTOM,
+            heightReference: Cesium4.HeightReference.CLAMP_TO_GROUND,
             disableDepthTestDistance: Number.POSITIVE_INFINITY
           });
         }
@@ -270,7 +353,7 @@ var LayerManager = class {
     for (let i = 0; i < entities.length; i++) {
       const e = entities[i];
       if (e.polygon) {
-        const hierarchy = e.polygon.hierarchy?.getValue(Cesium3.JulianDate.now());
+        const hierarchy = e.polygon.hierarchy?.getValue(Cesium4.JulianDate.now());
         if (hierarchy?.positions) {
           const positions = [...hierarchy.positions, hierarchy.positions[0]];
           ds.entities.add({
@@ -327,6 +410,70 @@ var LayerManager = class {
     this._viewer.flyTo(ds, { duration: 1.5 });
     return info;
   }
+  // ==================== addYellowModel ====================
+  async addYellowModel(params) {
+    const { id, name, data, url, dataRefId, style } = params;
+    if (!data && !url) throw new Error('Either "data" or "url" must be provided');
+    let geojson = data ?? {};
+    if (url) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Failed to fetch GeoJSON from url: ${url}`);
+      geojson = await res.json();
+    }
+    const polygons = extractPolygonRingsFromGeoJson(geojson);
+    if (!polygons.length) {
+      throw new Error("No polygon features found in GeoJSON data (only Polygon/MultiPolygon supported)");
+    }
+    const layerId = id ?? `yellow_model_${Date.now()}`;
+    const layerName = name ?? layerId;
+    const strokeWidth = style?.strokeWidth ?? 2;
+    const opacity = style?.opacity ?? 0.85;
+    const lowColor = parseColor(style?.lowColor ?? "#FFF9C4");
+    const highColor = parseColor(style?.highColor ?? "#FF8F00");
+    const outlineColor = parseColor(style?.outlineColor ?? "#B8860B");
+    this.removeLayer(layerId);
+    const ds = new Cesium4.CustomDataSource(layerName);
+    for (const poly of polygons) {
+      const faceMinH = ringMinHeight(poly.exterior);
+      const faceMaxH = Math.max(polygonMaxHeight(poly), faceMinH + 1e-3);
+      const exteriorTop = ringTopPositions(poly.exterior, faceMinH);
+      const holeHierarchies = poly.holes.map((hole) => {
+        const holeTop = ringTopPositions(hole, faceMinH);
+        return new Cesium4.PolygonHierarchy(holeTop);
+      });
+      ds.entities.add({
+        polygon: {
+          hierarchy: new Cesium4.PolygonHierarchy(exteriorTop, holeHierarchies),
+          perPositionHeight: true,
+          extrudedHeight: faceMinH,
+          outline: false,
+          material: createYellowHeightGradientMaterialProperty(
+            faceMinH,
+            faceMaxH,
+            lowColor.withAlpha(opacity),
+            highColor.withAlpha(opacity)
+          )
+        }
+      });
+      addExtrudedPolygonBorders(ds, poly.exterior, faceMinH, strokeWidth, outlineColor);
+      for (const hole of poly.holes) {
+        addExtrudedPolygonBorders(ds, hole, faceMinH, strokeWidth, outlineColor);
+      }
+    }
+    this._viewer.dataSources.add(ds);
+    const info = {
+      id: layerId,
+      name: layerName,
+      type: "\u9EC4\u8272\u6324\u538B\u9762",
+      visible: true,
+      color: "#FF8F00",
+      dataRefId
+    };
+    this._cesiumRefs.set(layerId, { dataSource: ds });
+    this._layers.push(info);
+    this._viewer.flyTo(ds, { duration: 1.5 });
+    return info;
+  }
   // ==================== addGeoJsonPrimitive ====================
   async addGeoJsonPrimitive(params) {
     const { id, name, data, url, allowPicking, show } = params;
@@ -337,7 +484,7 @@ var LayerManager = class {
     const opts = {};
     if (allowPicking !== void 0) opts.allowPicking = allowPicking;
     if (show !== void 0) opts.show = show;
-    const GeoJsonPrimitive2 = Cesium3.GeoJsonPrimitive;
+    const GeoJsonPrimitive2 = Cesium4.GeoJsonPrimitive;
     if (!GeoJsonPrimitive2) {
       throw new Error("GeoJsonPrimitive is not available in this CesiumJS version");
     }
@@ -412,12 +559,12 @@ var LayerManager = class {
     }
     const entity = this._viewer.entities.add({
       rectangle: {
-        coordinates: Cesium3.Rectangle.fromDegrees(west, south, east, north),
-        material: new Cesium3.ImageMaterialProperty({
-          image: new Cesium3.ConstantProperty(canvas),
+        coordinates: Cesium4.Rectangle.fromDegrees(west, south, east, north),
+        material: new Cesium4.ImageMaterialProperty({
+          image: new Cesium4.ConstantProperty(canvas),
           transparent: true
         }),
-        classificationType: Cesium3.ClassificationType.BOTH
+        classificationType: Cesium4.ClassificationType.BOTH
       }
     });
     const info = {
@@ -430,7 +577,7 @@ var LayerManager = class {
     this._cesiumRefs.set(layerId, { entity });
     this._layers.push(info);
     this._viewer.camera.flyTo({
-      destination: Cesium3.Rectangle.fromDegrees(west, south, east, north),
+      destination: Cesium4.Rectangle.fromDegrees(west, south, east, north),
       duration: 1.5
     });
     return info;
@@ -529,35 +676,35 @@ var LayerManager = class {
         if (!entity.label) continue;
         if (ls.font || ls.fontSize) {
           const fontSize = ls.fontSize ?? 14;
-          entity.label.font = new Cesium3.ConstantProperty(ls.font ?? `${fontSize}px sans-serif`);
+          entity.label.font = new Cesium4.ConstantProperty(ls.font ?? `${fontSize}px sans-serif`);
         }
         if (ls.fillColor) {
-          entity.label.fillColor = new Cesium3.ConstantProperty(
+          entity.label.fillColor = new Cesium4.ConstantProperty(
             parseColor(ls.fillColor)
           );
         }
         if (ls.outlineColor) {
-          entity.label.outlineColor = new Cesium3.ConstantProperty(
+          entity.label.outlineColor = new Cesium4.ConstantProperty(
             parseColor(ls.outlineColor)
           );
         }
         if (ls.outlineWidth !== void 0) {
-          entity.label.outlineWidth = new Cesium3.ConstantProperty(ls.outlineWidth);
+          entity.label.outlineWidth = new Cesium4.ConstantProperty(ls.outlineWidth);
         }
         if (ls.scale !== void 0) {
-          entity.label.scale = new Cesium3.ConstantProperty(ls.scale);
+          entity.label.scale = new Cesium4.ConstantProperty(ls.scale);
         }
         if (ls.showBackground !== void 0) {
-          entity.label.showBackground = new Cesium3.ConstantProperty(ls.showBackground);
+          entity.label.showBackground = new Cesium4.ConstantProperty(ls.showBackground);
         }
         if (ls.backgroundColor) {
-          entity.label.backgroundColor = new Cesium3.ConstantProperty(
+          entity.label.backgroundColor = new Cesium4.ConstantProperty(
             parseColor(ls.backgroundColor)
           );
         }
         if (ls.pixelOffset) {
-          entity.label.pixelOffset = new Cesium3.ConstantProperty(
-            new Cesium3.Cartesian2(ls.pixelOffset[0], ls.pixelOffset[1])
+          entity.label.pixelOffset = new Cesium4.ConstantProperty(
+            new Cesium4.Cartesian2(ls.pixelOffset[0], ls.pixelOffset[1])
           );
         }
       }
@@ -572,13 +719,13 @@ var LayerManager = class {
       const opacity = gs.opacity ?? 0.6;
       for (const entity of entities) {
         if (entity.polyline) {
-          if (color) entity.polyline.material = new Cesium3.ColorMaterialProperty(color.withAlpha(opacity));
-          if (gs.strokeWidth !== void 0) entity.polyline.width = new Cesium3.ConstantProperty(gs.strokeWidth);
+          if (color) entity.polyline.material = new Cesium4.ColorMaterialProperty(color.withAlpha(opacity));
+          if (gs.strokeWidth !== void 0) entity.polyline.width = new Cesium4.ConstantProperty(gs.strokeWidth);
         }
         if (entity.polygon) {
           if (color) {
-            entity.polygon.material = new Cesium3.ColorMaterialProperty(color.withAlpha(opacity * 0.4));
-            entity.polygon.outlineColor = new Cesium3.ConstantProperty(color);
+            entity.polygon.material = new Cesium4.ColorMaterialProperty(color.withAlpha(opacity * 0.4));
+            entity.polygon.outlineColor = new Cesium4.ConstantProperty(color);
           }
         }
         if (entity.billboard) {
@@ -587,14 +734,14 @@ var LayerManager = class {
           if (newColor || newSize) {
             const cssCol = gs.color ?? layer.color ?? "#3B82F6";
             const sz = newSize ?? 10;
-            entity.billboard.image = new Cesium3.ConstantProperty(createCircleImage(sz * 2, cssCol, opacity));
-            entity.billboard.width = new Cesium3.ConstantProperty(sz * 2);
-            entity.billboard.height = new Cesium3.ConstantProperty(sz * 2);
+            entity.billboard.image = new Cesium4.ConstantProperty(createCircleImage(sz * 2, cssCol, opacity));
+            entity.billboard.width = new Cesium4.ConstantProperty(sz * 2);
+            entity.billboard.height = new Cesium4.ConstantProperty(sz * 2);
           }
         }
         if (entity.point) {
-          if (color) entity.point.color = new Cesium3.ConstantProperty(color.withAlpha(opacity));
-          if (gs.pointSize !== void 0) entity.point.pixelSize = new Cesium3.ConstantProperty(gs.pointSize);
+          if (color) entity.point.color = new Cesium4.ConstantProperty(color.withAlpha(opacity));
+          if (gs.pointSize !== void 0) entity.point.pixelSize = new Cesium4.ConstantProperty(gs.pointSize);
         }
       }
       if (gs.color) layer.color = gs.color;
@@ -607,7 +754,7 @@ var LayerManager = class {
       if (ts.show) styleObj.show = ts.show;
       if (ts.pointSize) styleObj.pointSize = ts.pointSize;
       if (ts.meta) Object.assign(styleObj, { meta: ts.meta });
-      refs.tileset.style = new Cesium3.Cesium3DTileStyle(styleObj);
+      refs.tileset.style = new Cesium4.Cesium3DTileStyle(styleObj);
       if (ts.color) layer.color = ts.color;
       return true;
     }
@@ -631,7 +778,7 @@ var LayerManager = class {
       if (!e.properties) continue;
       for (const name of e.properties.propertyNames) {
         if (fieldMap.has(name)) continue;
-        const val = e.properties[name]?.getValue?.(Cesium3.JulianDate.now());
+        const val = e.properties[name]?.getValue?.(Cesium4.JulianDate.now());
         fieldMap.set(name, {
           name,
           type: val === null || val === void 0 ? "unknown" : Array.isArray(val) ? "array" : typeof val,
@@ -687,10 +834,10 @@ var LayerManager = class {
     if (tileset.maximumScreenSpaceError != null) metadata.geometricError = tileset.maximumScreenSpaceError;
     if (tileset.boundingSphere) {
       try {
-        const center = Cesium3.Cartographic.fromCartesian(tileset.boundingSphere.center);
+        const center = Cesium4.Cartographic.fromCartesian(tileset.boundingSphere.center);
         metadata.boundingSphere = {
-          longitude: Cesium3.Math.toDegrees(center.longitude),
-          latitude: Cesium3.Math.toDegrees(center.latitude),
+          longitude: Cesium4.Math.toDegrees(center.longitude),
+          latitude: Cesium4.Math.toDegrees(center.latitude),
           height: center.height,
           radius: tileset.boundingSphere.radius
         };
@@ -732,21 +879,21 @@ var LayerManager = class {
     const layerName = name ?? "3D Tiles";
     if (!url && !ionAssetId) throw new Error('Either "url" or "ionAssetId" must be provided');
     this.removeLayer(layerId);
-    const tileset = ionAssetId ? await Cesium3.Cesium3DTileset.fromIonAssetId(ionAssetId, { maximumScreenSpaceError }) : await Cesium3.Cesium3DTileset.fromUrl(url, { maximumScreenSpaceError });
+    const tileset = ionAssetId ? await Cesium4.Cesium3DTileset.fromIonAssetId(ionAssetId, { maximumScreenSpaceError }) : await Cesium4.Cesium3DTileset.fromUrl(url, { maximumScreenSpaceError });
     if (heightOffset !== 0) {
-      const cartographic = Cesium3.Cartographic.fromCartesian(tileset.boundingSphere.center);
-      const surface = Cesium3.Cartesian3.fromRadians(
+      const cartographic = Cesium4.Cartographic.fromCartesian(tileset.boundingSphere.center);
+      const surface = Cesium4.Cartesian3.fromRadians(
         cartographic.longitude,
         cartographic.latitude,
         0
       );
-      const offset = Cesium3.Cartesian3.fromRadians(
+      const offset = Cesium4.Cartesian3.fromRadians(
         cartographic.longitude,
         cartographic.latitude,
         heightOffset
       );
-      const translation = Cesium3.Cartesian3.subtract(offset, surface, new Cesium3.Cartesian3());
-      tileset.modelMatrix = Cesium3.Matrix4.fromTranslation(translation);
+      const translation = Cesium4.Cartesian3.subtract(offset, surface, new Cesium4.Cartesian3());
+      tileset.modelMatrix = Cesium4.Matrix4.fromTranslation(translation);
     }
     this._viewer.scene.primitives.add(tileset);
     this._viewer.flyTo(tileset, { duration: 1.5 });
@@ -767,7 +914,7 @@ var LayerManager = class {
     const layerId = id ?? `gaussian_splat_${Date.now()}`;
     const layerName = name ?? "3D Gaussian Splat";
     this.removeLayer(layerId);
-    const tileset = await Cesium3.Cesium3DTileset.fromUrl(url, {
+    const tileset = await Cesium4.Cesium3DTileset.fromUrl(url, {
       maximumScreenSpaceError
     });
     tileset.show = show;
@@ -788,19 +935,19 @@ var LayerManager = class {
     const { provider, url, cesiumIonAssetId } = params;
     const onError = (e) => console.error("[CesiumBridge] loadTerrain failed:", e);
     if (provider === "flat") {
-      this._viewer.scene.terrainProvider = new Cesium3.EllipsoidTerrainProvider();
+      this._viewer.scene.terrainProvider = new Cesium4.EllipsoidTerrainProvider();
     } else if (provider === "arcgis") {
-      Cesium3.ArcGISTiledElevationTerrainProvider.fromUrl(
+      Cesium4.ArcGISTiledElevationTerrainProvider.fromUrl(
         "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer"
       ).then((tp) => {
         this._viewer.scene.terrainProvider = tp;
       }).catch(onError);
     } else if (provider === "cesiumion" && cesiumIonAssetId) {
-      Cesium3.CesiumTerrainProvider.fromIonAssetId(cesiumIonAssetId).then((tp) => {
+      Cesium4.CesiumTerrainProvider.fromIonAssetId(cesiumIonAssetId).then((tp) => {
         this._viewer.scene.terrainProvider = tp;
       }).catch(onError);
     } else if (url) {
-      Cesium3.CesiumTerrainProvider.fromUrl(url).then((tp) => {
+      Cesium4.CesiumTerrainProvider.fromUrl(url).then((tp) => {
         this._viewer.scene.terrainProvider = tp;
       }).catch(onError);
     }
@@ -811,20 +958,20 @@ var LayerManager = class {
     if (!url && !ionAssetId) throw new Error('Either "url" or "ionAssetId" must be provided');
     let imageryLayer;
     if (ionAssetId) {
-      await Cesium3.IonResource.fromAssetId(ionAssetId);
-      const provider = await Cesium3.IonImageryProvider.fromAssetId(ionAssetId);
+      await Cesium4.IonResource.fromAssetId(ionAssetId);
+      const provider = await Cesium4.IonImageryProvider.fromAssetId(ionAssetId);
       imageryLayer = this._viewer.imageryLayers.addImageryProvider(provider);
     } else {
       let provider;
       switch (serviceType) {
         case "wms":
-          provider = new Cesium3.WebMapServiceImageryProvider({
+          provider = new Cesium4.WebMapServiceImageryProvider({
             url,
             layers: layerName ?? ""
           });
           break;
         case "wmts":
-          provider = new Cesium3.WebMapTileServiceImageryProvider({
+          provider = new Cesium4.WebMapTileServiceImageryProvider({
             url,
             layer: layerName ?? "",
             style: "default",
@@ -832,11 +979,11 @@ var LayerManager = class {
           });
           break;
         case "arcgis_mapserver":
-          provider = new Cesium3.ArcGisMapServerImageryProvider({ url });
+          provider = new Cesium4.ArcGisMapServerImageryProvider({ url });
           break;
         case "xyz":
         default:
-          provider = new Cesium3.UrlTemplateImageryProvider({
+          provider = new Cesium4.UrlTemplateImageryProvider({
             url,
             maximumLevel: 18
           });
@@ -865,21 +1012,21 @@ var LayerManager = class {
     this.removeLayer(layerId);
     const loadOptions = {};
     if (sourceUri) loadOptions.sourceUri = sourceUri;
-    const ds = await Cesium3.CzmlDataSource.load(url ?? data, loadOptions);
+    const ds = await Cesium4.CzmlDataSource.load(url ?? data, loadOptions);
     const displayName = name || ds.name || (url ? `CZML (${url.split("/").pop()})` : "CZML Data");
     if (clampToGround) {
       for (const entity of ds.entities.values) {
         if (entity.billboard) {
-          entity.billboard.heightReference = new Cesium3.ConstantProperty(Cesium3.HeightReference.CLAMP_TO_GROUND);
+          entity.billboard.heightReference = new Cesium4.ConstantProperty(Cesium4.HeightReference.CLAMP_TO_GROUND);
         }
         if (entity.point) {
-          entity.point.heightReference = new Cesium3.ConstantProperty(Cesium3.HeightReference.CLAMP_TO_GROUND);
+          entity.point.heightReference = new Cesium4.ConstantProperty(Cesium4.HeightReference.CLAMP_TO_GROUND);
         }
         if (entity.label) {
-          entity.label.heightReference = new Cesium3.ConstantProperty(Cesium3.HeightReference.CLAMP_TO_GROUND);
+          entity.label.heightReference = new Cesium4.ConstantProperty(Cesium4.HeightReference.CLAMP_TO_GROUND);
         }
         if (entity.model) {
-          entity.model.heightReference = new Cesium3.ConstantProperty(Cesium3.HeightReference.CLAMP_TO_GROUND);
+          entity.model.heightReference = new Cesium4.ConstantProperty(Cesium4.HeightReference.CLAMP_TO_GROUND);
         }
       }
     }
@@ -911,7 +1058,7 @@ var LayerManager = class {
     if (sourceUri) loadOptions.sourceUri = sourceUri;
     if (clampToGround) loadOptions.clampToGround = true;
     const source = url ?? new Blob([data], { type: "application/xml" });
-    const ds = await Cesium3.KmlDataSource.load(source, loadOptions);
+    const ds = await Cesium4.KmlDataSource.load(source, loadOptions);
     const displayName = name || ds.name || (url ? `KML (${url.split("/").pop()})` : "KML Data");
     this._viewer.dataSources.add(ds);
     if (params.flyTo !== false) {
@@ -934,7 +1081,7 @@ var LayerManager = class {
     this._viewer.imageryLayers.removeAll();
     if (params.url) {
       this._viewer.imageryLayers.addImageryProvider(
-        new Cesium3.UrlTemplateImageryProvider({ url: params.url, maximumLevel: 18 })
+        new Cesium4.UrlTemplateImageryProvider({ url: params.url, maximumLevel: 18 })
       );
       return params.url;
     }
@@ -942,7 +1089,7 @@ var LayerManager = class {
     const preset = BASEMAP_PRESETS[basemap] ?? BASEMAP_PRESETS["dark"];
     for (const layer of preset.layers(tk)) {
       this._viewer.imageryLayers.addImageryProvider(
-        new Cesium3.UrlTemplateImageryProvider(layer)
+        new Cesium4.UrlTemplateImageryProvider(layer)
       );
     }
     if (preset.backgroundColor) {
@@ -957,7 +1104,7 @@ function applyChoroplethStyle(ds, field, breaks, colors, opacity) {
   for (const entity of entities) {
     const props = entity.properties;
     if (!props) continue;
-    const raw = props[field]?.getValue(Cesium3.JulianDate.now());
+    const raw = props[field]?.getValue(Cesium4.JulianDate.now());
     const val = typeof raw === "number" ? raw : parseFloat(raw);
     if (isNaN(val)) continue;
     let classIdx = colors.length - 1;
@@ -970,15 +1117,15 @@ function applyChoroplethStyle(ds, field, breaks, colors, opacity) {
     const fillColor = parseColor(colors[classIdx] ?? "#3B82F6").withAlpha(opacity);
     const strokeColor = parseColor("#333333").withAlpha(0.6);
     if (entity.polygon) {
-      entity.polygon.material = new Cesium3.ColorMaterialProperty(fillColor);
-      entity.polygon.outlineColor = new Cesium3.ConstantProperty(strokeColor);
-      entity.polygon.outlineWidth = new Cesium3.ConstantProperty(1);
+      entity.polygon.material = new Cesium4.ColorMaterialProperty(fillColor);
+      entity.polygon.outlineColor = new Cesium4.ConstantProperty(strokeColor);
+      entity.polygon.outlineWidth = new Cesium4.ConstantProperty(1);
     } else if (entity.polyline) {
-      entity.polyline.material = new Cesium3.ColorMaterialProperty(fillColor);
+      entity.polyline.material = new Cesium4.ColorMaterialProperty(fillColor);
     } else if (entity.point) {
-      entity.point.color = new Cesium3.ConstantProperty(fillColor);
+      entity.point.color = new Cesium4.ConstantProperty(fillColor);
     } else if (entity.billboard) {
-      entity.billboard.color = new Cesium3.ConstantProperty(fillColor);
+      entity.billboard.color = new Cesium4.ConstantProperty(fillColor);
     }
   }
 }
@@ -1002,24 +1149,24 @@ function applyCategoryStyle(ds, field, customColors, opacity) {
   for (const entity of entities) {
     const props = entity.properties;
     if (!props) continue;
-    const raw = props[field]?.getValue(Cesium3.JulianDate.now());
+    const raw = props[field]?.getValue(Cesium4.JulianDate.now());
     const val = raw !== void 0 && raw !== null ? Number(raw) : -1;
     const cssColor = val < 0 ? "#6B7280" : palette[val % palette.length] ?? "#6B7280";
     const fillColor = parseColor(cssColor).withAlpha(opacity);
     const strokeColor = parseColor(cssColor).withAlpha(Math.min(opacity + 0.2, 1));
     if (entity.point) {
-      entity.point.color = new Cesium3.ConstantProperty(fillColor);
-      entity.point.pixelSize = new Cesium3.ConstantProperty(10);
-      entity.point.outlineColor = new Cesium3.ConstantProperty(strokeColor);
-      entity.point.outlineWidth = new Cesium3.ConstantProperty(1);
+      entity.point.color = new Cesium4.ConstantProperty(fillColor);
+      entity.point.pixelSize = new Cesium4.ConstantProperty(10);
+      entity.point.outlineColor = new Cesium4.ConstantProperty(strokeColor);
+      entity.point.outlineWidth = new Cesium4.ConstantProperty(1);
     } else if (entity.billboard) {
-      entity.billboard.color = new Cesium3.ConstantProperty(fillColor);
+      entity.billboard.color = new Cesium4.ConstantProperty(fillColor);
     } else if (entity.polygon) {
-      entity.polygon.material = new Cesium3.ColorMaterialProperty(fillColor);
-      entity.polygon.outlineColor = new Cesium3.ConstantProperty(strokeColor);
+      entity.polygon.material = new Cesium4.ColorMaterialProperty(fillColor);
+      entity.polygon.outlineColor = new Cesium4.ConstantProperty(strokeColor);
     } else if (entity.polyline) {
-      entity.polyline.material = new Cesium3.ColorMaterialProperty(fillColor);
-      entity.polyline.width = new Cesium3.ConstantProperty(3);
+      entity.polyline.material = new Cesium4.ColorMaterialProperty(fillColor);
+      entity.polyline.width = new Cesium4.ConstantProperty(3);
     }
   }
 }
@@ -1029,8 +1176,8 @@ function applyRandomColorStyle(ds, opacity) {
     const hue = Math.random();
     const sat = 0.5 + Math.random() * 0.4;
     const light = 0.4 + Math.random() * 0.25;
-    const fillColor = Cesium3.Color.fromHsl(hue, sat, light, opacity);
-    const strokeColor = Cesium3.Color.fromHsl(hue, sat, light, Math.min(opacity + 0.3, 1));
+    const fillColor = Cesium4.Color.fromHsl(hue, sat, light, opacity);
+    const strokeColor = Cesium4.Color.fromHsl(hue, sat, light, Math.min(opacity + 0.3, 1));
     applyColorToEntity(entity, fillColor, strokeColor);
   }
 }
@@ -1044,21 +1191,117 @@ function applyGradientStyle(ds, gradient, opacity) {
     const r = startColor.red + (endColor.red - startColor.red) * t;
     const g = startColor.green + (endColor.green - startColor.green) * t;
     const b = startColor.blue + (endColor.blue - startColor.blue) * t;
-    const fillColor = new Cesium3.Color(r, g, b, opacity);
-    const strokeColor = new Cesium3.Color(r, g, b, Math.min(opacity + 0.3, 1));
+    const fillColor = new Cesium4.Color(r, g, b, opacity);
+    const strokeColor = new Cesium4.Color(r, g, b, Math.min(opacity + 0.3, 1));
     applyColorToEntity(entities[i], fillColor, strokeColor);
   }
 }
 function applyColorToEntity(entity, fillColor, strokeColor) {
   if (entity.polygon) {
-    entity.polygon.material = new Cesium3.ColorMaterialProperty(fillColor);
-    entity.polygon.outlineColor = new Cesium3.ConstantProperty(strokeColor);
+    entity.polygon.material = new Cesium4.ColorMaterialProperty(fillColor);
+    entity.polygon.outlineColor = new Cesium4.ConstantProperty(strokeColor);
   } else if (entity.polyline) {
-    entity.polyline.material = new Cesium3.ColorMaterialProperty(fillColor);
+    entity.polyline.material = new Cesium4.ColorMaterialProperty(fillColor);
   } else if (entity.point) {
-    entity.point.color = new Cesium3.ConstantProperty(fillColor);
+    entity.point.color = new Cesium4.ConstantProperty(fillColor);
   } else if (entity.billboard) {
-    entity.billboard.color = new Cesium3.ConstantProperty(fillColor);
+    entity.billboard.color = new Cesium4.ConstantProperty(fillColor);
+  }
+}
+function extractPolygonRingsFromGeoJson(geojson) {
+  const result = [];
+  const features = normalizeGeoJsonFeatures(geojson);
+  for (const feature of features) {
+    const geom = feature?.geometry;
+    if (!geom) continue;
+    if (geom.type === "Polygon") {
+      const coords = geom.coordinates;
+      if (coords?.[0]?.length) {
+        result.push({ exterior: coords[0], holes: coords.slice(1) });
+      }
+    } else if (geom.type === "MultiPolygon") {
+      const polys = geom.coordinates;
+      for (const poly of polys ?? []) {
+        if (poly?.[0]?.length) {
+          result.push({ exterior: poly[0], holes: poly.slice(1) });
+        }
+      }
+    }
+  }
+  return result;
+}
+function normalizeGeoJsonFeatures(geojson) {
+  const g = geojson;
+  if (g?.type === "Feature") return [g];
+  if (g?.type === "FeatureCollection") return g.features ?? [];
+  if (g?.type === "Polygon" || g?.type === "MultiPolygon") {
+    return [{ type: "Feature", geometry: g }];
+  }
+  return [];
+}
+function ringMinHeight(ring) {
+  let min = Infinity;
+  for (const c of ring) {
+    const h = c[2] ?? 0;
+    if (h < min) min = h;
+  }
+  return min === Infinity ? 0 : min;
+}
+function ringTopPositions(ring, faceMinHeight) {
+  return ring.map((c) => {
+    const lon = c[0];
+    const lat = c[1];
+    const h = c[2] ?? 0;
+    const relative = h - faceMinHeight;
+    return Cesium4.Cartesian3.fromDegrees(lon, lat, faceMinHeight + relative);
+  });
+}
+function ringMaxHeight(ring) {
+  let max = -Infinity;
+  for (const c of ring) {
+    const h = c[2] ?? 0;
+    if (h > max) max = h;
+  }
+  return max === -Infinity ? 0 : max;
+}
+function polygonMaxHeight(poly) {
+  let max = ringMaxHeight(poly.exterior);
+  for (const hole of poly.holes) {
+    max = Math.max(max, ringMaxHeight(hole));
+  }
+  return max;
+}
+function addExtrudedPolygonBorders(ds, ring, faceMinH, strokeWidth, outlineColor) {
+  const topPositions = ringTopPositions(ring, faceMinH);
+  const bottomPositions = ring.map(
+    (c) => Cesium4.Cartesian3.fromDegrees(c[0], c[1], faceMinH)
+  );
+  const openRing = ring.length > 1 && ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1];
+  const topLoop = openRing ? topPositions.slice(0, -1) : topPositions;
+  const bottomLoop = openRing ? bottomPositions.slice(0, -1) : bottomPositions;
+  const outlineMat = new Cesium4.ColorMaterialProperty(outlineColor);
+  ds.entities.add({
+    polyline: {
+      positions: [...topLoop, topLoop[0]],
+      width: strokeWidth,
+      material: outlineMat
+    }
+  });
+  ds.entities.add({
+    polyline: {
+      positions: [...bottomLoop, bottomLoop[0]],
+      width: strokeWidth,
+      material: outlineMat
+    }
+  });
+  for (let i = 0; i < topLoop.length; i++) {
+    ds.entities.add({
+      polyline: {
+        positions: [bottomLoop[i], topLoop[i]],
+        width: strokeWidth,
+        material: outlineMat
+      }
+    });
   }
 }
 function detectGeometryType(geojson) {
@@ -1140,12 +1383,12 @@ function addLabels(viewer, data, params) {
   const features = data?.features ?? [];
   const entities = [];
   const font = style?.font ?? "14px sans-serif";
-  const fillColor = style?.fillColor ? parseColor(style.fillColor) : Cesium3.Color.WHITE;
-  const outlineColor = style?.outlineColor ? parseColor(style.outlineColor) : Cesium3.Color.BLACK;
+  const fillColor = style?.fillColor ? parseColor(style.fillColor) : Cesium4.Color.WHITE;
+  const outlineColor = style?.outlineColor ? parseColor(style.outlineColor) : Cesium4.Color.BLACK;
   const outlineWidth = style?.outlineWidth ?? 2;
   const showBackground = style?.showBackground ?? false;
-  const backgroundColor = style?.backgroundColor ? parseColor(style.backgroundColor) : new Cesium3.Color(0.1, 0.1, 0.1, 0.7);
-  const pixelOffset = style?.pixelOffset ? new Cesium3.Cartesian2(style.pixelOffset[0], style.pixelOffset[1]) : new Cesium3.Cartesian2(0, -12);
+  const backgroundColor = style?.backgroundColor ? parseColor(style.backgroundColor) : new Cesium4.Color(0.1, 0.1, 0.1, 0.7);
+  const pixelOffset = style?.pixelOffset ? new Cesium4.Cartesian2(style.pixelOffset[0], style.pixelOffset[1]) : new Cesium4.Cartesian2(0, -12);
   const scale = style?.scale ?? 1;
   for (const feature of features) {
     const props = feature?.properties ?? {};
@@ -1154,20 +1397,20 @@ function addLabels(viewer, data, params) {
     const center = computeFeatureCentroid(feature);
     if (!center) continue;
     const entity = viewer.entities.add({
-      position: Cesium3.Cartesian3.fromDegrees(center[0], center[1]),
+      position: Cesium4.Cartesian3.fromDegrees(center[0], center[1]),
       label: {
         text: String(text),
         font,
         fillColor,
         outlineColor,
         outlineWidth,
-        style: Cesium3.LabelStyle.FILL_AND_OUTLINE,
+        style: Cesium4.LabelStyle.FILL_AND_OUTLINE,
         showBackground,
         backgroundColor,
         pixelOffset,
         scale,
-        verticalOrigin: Cesium3.VerticalOrigin.BOTTOM,
-        heightReference: Cesium3.HeightReference.CLAMP_TO_GROUND,
+        verticalOrigin: Cesium4.VerticalOrigin.BOTTOM,
+        heightReference: Cesium4.HeightReference.CLAMP_TO_GROUND,
         disableDepthTestDistance: Number.POSITIVE_INFINITY
       }
     });
@@ -1180,25 +1423,25 @@ function addMarker(viewer, params) {
   validateCoordinate(longitude, latitude);
   const cesiumColor = parseColor(color);
   return viewer.entities.add({
-    position: Cesium3.Cartesian3.fromDegrees(longitude, latitude),
+    position: Cesium4.Cartesian3.fromDegrees(longitude, latitude),
     point: {
       pixelSize: size,
       color: cesiumColor,
-      outlineColor: Cesium3.Color.WHITE,
+      outlineColor: Cesium4.Color.WHITE,
       outlineWidth: 1,
-      heightReference: Cesium3.HeightReference.CLAMP_TO_GROUND,
+      heightReference: Cesium4.HeightReference.CLAMP_TO_GROUND,
       disableDepthTestDistance: Number.POSITIVE_INFINITY
     },
     label: label ? {
       text: label,
       font: "13px sans-serif",
-      fillColor: Cesium3.Color.WHITE,
-      outlineColor: Cesium3.Color.BLACK,
+      fillColor: Cesium4.Color.WHITE,
+      outlineColor: Cesium4.Color.BLACK,
       outlineWidth: 2,
-      style: Cesium3.LabelStyle.FILL_AND_OUTLINE,
-      pixelOffset: new Cesium3.Cartesian2(0, -18),
-      verticalOrigin: Cesium3.VerticalOrigin.BOTTOM,
-      heightReference: Cesium3.HeightReference.CLAMP_TO_GROUND,
+      style: Cesium4.LabelStyle.FILL_AND_OUTLINE,
+      pixelOffset: new Cesium4.Cartesian2(0, -18),
+      verticalOrigin: Cesium4.VerticalOrigin.BOTTOM,
+      heightReference: Cesium4.HeightReference.CLAMP_TO_GROUND,
       disableDepthTestDistance: Number.POSITIVE_INFINITY
     } : void 0
   });
@@ -1208,7 +1451,7 @@ function addPolyline(viewer, params) {
   const cesiumColor = parseColor(color);
   const positions = coordinates.map((c) => {
     validateCoordinate(c[0], c[1], c[2]);
-    return Cesium3.Cartesian3.fromDegrees(c[0], c[1], c[2] ?? 0);
+    return Cesium4.Cartesian3.fromDegrees(c[0], c[1], c[2] ?? 0);
   });
   const midIdx = Math.floor(positions.length / 2);
   return viewer.entities.add({
@@ -1222,12 +1465,12 @@ function addPolyline(viewer, params) {
     label: label ? {
       text: label,
       font: "13px sans-serif",
-      fillColor: Cesium3.Color.WHITE,
-      outlineColor: Cesium3.Color.BLACK,
+      fillColor: Cesium4.Color.WHITE,
+      outlineColor: Cesium4.Color.BLACK,
       outlineWidth: 2,
-      style: Cesium3.LabelStyle.FILL_AND_OUTLINE,
-      pixelOffset: new Cesium3.Cartesian2(0, -12),
-      verticalOrigin: Cesium3.VerticalOrigin.BOTTOM,
+      style: Cesium4.LabelStyle.FILL_AND_OUTLINE,
+      pixelOffset: new Cesium4.Cartesian2(0, -12),
+      verticalOrigin: Cesium4.VerticalOrigin.BOTTOM,
       disableDepthTestDistance: Number.POSITIVE_INFINITY
     } : void 0
   });
@@ -1238,29 +1481,29 @@ function addPolygon(viewer, params) {
   const strokeColor = parseColor(outlineColor);
   const positions = coordinates.map((c) => {
     validateCoordinate(c[0], c[1], c[2]);
-    return Cesium3.Cartesian3.fromDegrees(c[0], c[1], c[2] ?? 0);
+    return Cesium4.Cartesian3.fromDegrees(c[0], c[1], c[2] ?? 0);
   });
   const centroid = centroidOfCoords(coordinates.map((c) => [c[0], c[1]]));
   return viewer.entities.add({
-    position: label && centroid ? Cesium3.Cartesian3.fromDegrees(centroid[0], centroid[1]) : void 0,
+    position: label && centroid ? Cesium4.Cartesian3.fromDegrees(centroid[0], centroid[1]) : void 0,
     polygon: {
-      hierarchy: new Cesium3.PolygonHierarchy(positions),
+      hierarchy: new Cesium4.PolygonHierarchy(positions),
       material: fillColor,
       outline: true,
       outlineColor: strokeColor,
       outlineWidth: 1,
-      heightReference: clampToGround ? Cesium3.HeightReference.CLAMP_TO_GROUND : Cesium3.HeightReference.NONE,
+      heightReference: clampToGround ? Cesium4.HeightReference.CLAMP_TO_GROUND : Cesium4.HeightReference.NONE,
       extrudedHeight
     },
     label: label ? {
       text: label,
       font: "13px sans-serif",
-      fillColor: Cesium3.Color.WHITE,
-      outlineColor: Cesium3.Color.BLACK,
+      fillColor: Cesium4.Color.WHITE,
+      outlineColor: Cesium4.Color.BLACK,
       outlineWidth: 2,
-      style: Cesium3.LabelStyle.FILL_AND_OUTLINE,
-      verticalOrigin: Cesium3.VerticalOrigin.BOTTOM,
-      heightReference: Cesium3.HeightReference.CLAMP_TO_GROUND,
+      style: Cesium4.LabelStyle.FILL_AND_OUTLINE,
+      verticalOrigin: Cesium4.VerticalOrigin.BOTTOM,
+      heightReference: Cesium4.HeightReference.CLAMP_TO_GROUND,
       disableDepthTestDistance: Number.POSITIVE_INFINITY
     } : void 0
   });
@@ -1268,13 +1511,13 @@ function addPolygon(viewer, params) {
 function addModel(viewer, params) {
   const { longitude, latitude, height = 0, url, scale = 1, heading = 0, pitch = 0, roll = 0, label } = params;
   validateCoordinate(longitude, latitude, height);
-  const position = Cesium3.Cartesian3.fromDegrees(longitude, latitude, height);
-  const hpr = new Cesium3.HeadingPitchRoll(
-    Cesium3.Math.toRadians(heading),
-    Cesium3.Math.toRadians(pitch),
-    Cesium3.Math.toRadians(roll)
+  const position = Cesium4.Cartesian3.fromDegrees(longitude, latitude, height);
+  const hpr = new Cesium4.HeadingPitchRoll(
+    Cesium4.Math.toRadians(heading),
+    Cesium4.Math.toRadians(pitch),
+    Cesium4.Math.toRadians(roll)
   );
-  const orientation = Cesium3.Transforms.headingPitchRollQuaternion(position, hpr);
+  const orientation = Cesium4.Transforms.headingPitchRollQuaternion(position, hpr);
   return viewer.entities.add({
     position,
     orientation,
@@ -1285,12 +1528,12 @@ function addModel(viewer, params) {
     label: label ? {
       text: label,
       font: "13px sans-serif",
-      fillColor: Cesium3.Color.WHITE,
-      outlineColor: Cesium3.Color.BLACK,
+      fillColor: Cesium4.Color.WHITE,
+      outlineColor: Cesium4.Color.BLACK,
       outlineWidth: 2,
-      style: Cesium3.LabelStyle.FILL_AND_OUTLINE,
-      pixelOffset: new Cesium3.Cartesian2(0, -24),
-      verticalOrigin: Cesium3.VerticalOrigin.BOTTOM,
+      style: Cesium4.LabelStyle.FILL_AND_OUTLINE,
+      pixelOffset: new Cesium4.Cartesian2(0, -24),
+      verticalOrigin: Cesium4.VerticalOrigin.BOTTOM,
       disableDepthTestDistance: Number.POSITIVE_INFINITY
     } : void 0
   });
@@ -1301,22 +1544,22 @@ function updateEntity(viewer, params) {
   if (params.position) {
     const { longitude, latitude, height } = params.position;
     validateCoordinate(longitude, latitude, height);
-    entity.position = new Cesium3.ConstantPositionProperty(
-      Cesium3.Cartesian3.fromDegrees(longitude, latitude, height ?? 0)
+    entity.position = new Cesium4.ConstantPositionProperty(
+      Cesium4.Cartesian3.fromDegrees(longitude, latitude, height ?? 0)
     );
   }
   if (params.label !== void 0 && entity.label) {
-    entity.label.text = new Cesium3.ConstantProperty(params.label);
+    entity.label.text = new Cesium4.ConstantProperty(params.label);
   }
   if (params.color !== void 0) {
     const c = parseColor(params.color);
-    if (entity.point) entity.point.color = new Cesium3.ConstantProperty(c);
-    if (entity.polyline) entity.polyline.material = new Cesium3.ColorMaterialProperty(c);
-    if (entity.polygon) entity.polygon.material = new Cesium3.ColorMaterialProperty(c);
+    if (entity.point) entity.point.color = new Cesium4.ConstantProperty(c);
+    if (entity.polyline) entity.polyline.material = new Cesium4.ColorMaterialProperty(c);
+    if (entity.polygon) entity.polygon.material = new Cesium4.ColorMaterialProperty(c);
   }
   if (params.scale !== void 0) {
-    if (entity.model) entity.model.scale = new Cesium3.ConstantProperty(params.scale);
-    if (entity.label) entity.label.scale = new Cesium3.ConstantProperty(params.scale);
+    if (entity.model) entity.model.scale = new Cesium4.ConstantProperty(params.scale);
+    if (entity.label) entity.label.scale = new Cesium4.ConstantProperty(params.scale);
   }
   if (params.show !== void 0) {
     entity.show = params.show;
@@ -1367,17 +1610,17 @@ function queryEntities(viewer, params) {
 function matchEntityForQuery(entity, params, results) {
   const type = detectEntityType(entity);
   if (params.type && type !== params.type) return;
-  const name = entity.name ?? entity.label?.text?.getValue(Cesium3.JulianDate.now()) ?? void 0;
+  const name = entity.name ?? entity.label?.text?.getValue(Cesium4.JulianDate.now()) ?? void 0;
   if (params.name && name && !String(name).toLowerCase().includes(params.name.toLowerCase())) return;
   if (params.name && !name) return;
   let position;
   if (entity.position) {
-    const pos = entity.position.getValue(Cesium3.JulianDate.now());
+    const pos = entity.position.getValue(Cesium4.JulianDate.now());
     if (pos) {
-      const carto = Cesium3.Cartographic.fromCartesian(pos);
+      const carto = Cesium4.Cartographic.fromCartesian(pos);
       position = {
-        longitude: Cesium3.Math.toDegrees(carto.longitude),
-        latitude: Cesium3.Math.toDegrees(carto.latitude),
+        longitude: Cesium4.Math.toDegrees(carto.longitude),
+        latitude: Cesium4.Math.toDegrees(carto.latitude),
         height: carto.height
       };
     }
@@ -1404,7 +1647,7 @@ function matchEntityForQuery(entity, params, results) {
   });
 }
 function computeEntityCentroid(entity) {
-  const now = Cesium3.JulianDate.now();
+  const now = Cesium4.JulianDate.now();
   let positions;
   if (entity.polygon?.hierarchy) {
     const h = entity.polygon.hierarchy.getValue(now);
@@ -1417,8 +1660,8 @@ function computeEntityCentroid(entity) {
     const rect = entity.rectangle.coordinates.getValue(now);
     if (rect) {
       return {
-        longitude: Cesium3.Math.toDegrees((rect.west + rect.east) / 2),
-        latitude: Cesium3.Math.toDegrees((rect.south + rect.north) / 2),
+        longitude: Cesium4.Math.toDegrees((rect.west + rect.east) / 2),
+        latitude: Cesium4.Math.toDegrees((rect.south + rect.north) / 2),
         height: 0
       };
     }
@@ -1428,16 +1671,16 @@ function computeEntityCentroid(entity) {
   if (!positions || positions.length === 0) return void 0;
   let lonSum = 0, latSum = 0, hSum = 0;
   for (const p of positions) {
-    const c = Cesium3.Cartographic.fromCartesian(p);
-    lonSum += Cesium3.Math.toDegrees(c.longitude);
-    latSum += Cesium3.Math.toDegrees(c.latitude);
+    const c = Cesium4.Cartographic.fromCartesian(p);
+    lonSum += Cesium4.Math.toDegrees(c.longitude);
+    latSum += Cesium4.Math.toDegrees(c.latitude);
     hSum += c.height;
   }
   const n = positions.length;
   return { longitude: lonSum / n, latitude: latSum / n, height: hSum / n };
 }
 function computeEntityBbox(entity) {
-  const now = Cesium3.JulianDate.now();
+  const now = Cesium4.JulianDate.now();
   let positions;
   if (entity.polygon?.hierarchy) {
     const h = entity.polygon.hierarchy.getValue(now);
@@ -1450,10 +1693,10 @@ function computeEntityBbox(entity) {
     const rect = entity.rectangle.coordinates.getValue(now);
     if (rect) {
       return [
-        Cesium3.Math.toDegrees(rect.west),
-        Cesium3.Math.toDegrees(rect.south),
-        Cesium3.Math.toDegrees(rect.east),
-        Cesium3.Math.toDegrees(rect.north)
+        Cesium4.Math.toDegrees(rect.west),
+        Cesium4.Math.toDegrees(rect.south),
+        Cesium4.Math.toDegrees(rect.east),
+        Cesium4.Math.toDegrees(rect.north)
       ];
     }
   } else if (entity.wall?.positions) {
@@ -1462,9 +1705,9 @@ function computeEntityBbox(entity) {
   if (!positions || positions.length === 0) return void 0;
   let west = Infinity, south = Infinity, east = -Infinity, north = -Infinity;
   for (const p of positions) {
-    const c = Cesium3.Cartographic.fromCartesian(p);
-    const lon = Cesium3.Math.toDegrees(c.longitude);
-    const lat = Cesium3.Math.toDegrees(c.latitude);
+    const c = Cesium4.Cartographic.fromCartesian(p);
+    const lon = Cesium4.Math.toDegrees(c.longitude);
+    const lat = Cesium4.Math.toDegrees(c.latitude);
     if (lon < west) west = lon;
     if (lon > east) east = lon;
     if (lat < south) south = lat;
@@ -1488,7 +1731,7 @@ function detectEntityType(entity) {
   return "unknown";
 }
 function extractGraphicProperties(entity, type) {
-  const now = Cesium3.JulianDate.now();
+  const now = Cesium4.JulianDate.now();
   const props = {};
   const tryGetValue = (prop) => {
     if (prop == null) return void 0;
@@ -1517,10 +1760,10 @@ function extractGraphicProperties(entity, type) {
     if (!Array.isArray(positions) || positions.length === 0) return void 0;
     try {
       return positions.map((p) => {
-        const c = Cesium3.Cartographic.fromCartesian(p);
+        const c = Cesium4.Cartographic.fromCartesian(p);
         return [
-          Cesium3.Math.toDegrees(c.longitude),
-          Cesium3.Math.toDegrees(c.latitude),
+          Cesium4.Math.toDegrees(c.longitude),
+          Cesium4.Math.toDegrees(c.latitude),
           c.height
         ];
       });
@@ -1612,10 +1855,10 @@ function extractGraphicProperties(entity, type) {
       const rect = tryGetValue(rc.coordinates);
       if (rect && "west" in rect && "south" in rect && "east" in rect && "north" in rect) {
         props.coordinates = {
-          west: Cesium3.Math.toDegrees(rect.west),
-          south: Cesium3.Math.toDegrees(rect.south),
-          east: Cesium3.Math.toDegrees(rect.east),
-          north: Cesium3.Math.toDegrees(rect.north)
+          west: Cesium4.Math.toDegrees(rect.west),
+          south: Cesium4.Math.toDegrees(rect.south),
+          east: Cesium4.Math.toDegrees(rect.east),
+          north: Cesium4.Math.toDegrees(rect.north)
         };
       }
       props.color = extractMaterialColor(rc.material);
@@ -1658,12 +1901,12 @@ function getEntityProperties(viewer, params) {
   const type = detectEntityType(entity);
   let position;
   if (entity.position) {
-    const pos = entity.position.getValue(Cesium3.JulianDate.now());
+    const pos = entity.position.getValue(Cesium4.JulianDate.now());
     if (pos) {
-      const carto = Cesium3.Cartographic.fromCartesian(pos);
+      const carto = Cesium4.Cartographic.fromCartesian(pos);
       position = {
-        longitude: Cesium3.Math.toDegrees(carto.longitude),
-        latitude: Cesium3.Math.toDegrees(carto.latitude),
+        longitude: Cesium4.Math.toDegrees(carto.longitude),
+        latitude: Cesium4.Math.toDegrees(carto.latitude),
         height: carto.height
       };
     }
@@ -1676,7 +1919,7 @@ function getEntityProperties(viewer, params) {
     const names = entity.properties.propertyNames;
     for (const name of names) {
       try {
-        const val = entity.properties[name]?.getValue(Cesium3.JulianDate.now());
+        const val = entity.properties[name]?.getValue(Cesium4.JulianDate.now());
         properties[name] = val;
       } catch {
         properties[name] = void 0;
@@ -1686,7 +1929,7 @@ function getEntityProperties(viewer, params) {
   let description;
   if (entity.description) {
     try {
-      const desc = entity.description.getValue(Cesium3.JulianDate.now());
+      const desc = entity.description.getValue(Cesium4.JulianDate.now());
       if (typeof desc === "string") description = desc;
     } catch {
     }
@@ -1858,21 +2101,21 @@ function restoreEntityStyle(entity) {
   _highlightBackups.delete(entity.id);
 }
 function applyHighlight(entity, color) {
-  const mat = new Cesium3.ColorMaterialProperty(color);
-  const colorProp = new Cesium3.ConstantProperty(color);
+  const mat = new Cesium4.ColorMaterialProperty(color);
+  const colorProp = new Cesium4.ConstantProperty(color);
   if (entity.polygon) {
     entity.polygon.material = mat;
   } else if (entity.polyline) {
     entity.polyline.material = mat;
-    entity.polyline.width = new Cesium3.ConstantProperty(3);
+    entity.polyline.width = new Cesium4.ConstantProperty(3);
   } else if (entity.point) {
     entity.point.color = colorProp;
-    entity.point.pixelSize = new Cesium3.ConstantProperty(16);
+    entity.point.pixelSize = new Cesium4.ConstantProperty(16);
   } else if (entity.billboard) {
     entity.billboard.color = colorProp;
   } else if (entity.model) {
     entity.model.silhouetteColor = colorProp;
-    entity.model.silhouetteSize = new Cesium3.ConstantProperty(2);
+    entity.model.silhouetteSize = new Cesium4.ConstantProperty(2);
   } else if (entity.label) {
     entity.label.fillColor = colorProp;
   } else if (entity.box) {
@@ -1896,11 +2139,11 @@ function measure(viewer, params) {
   if (mode === "area" && positions.length < 3)
     throw new Error("At least 3 positions required for area measurement");
   const cartoPositions = positions.map(
-    ([lon, lat, alt]) => Cesium3.Cartographic.fromDegrees(lon, lat, alt ?? 0)
+    ([lon, lat, alt]) => Cesium4.Cartographic.fromDegrees(lon, lat, alt ?? 0)
   );
   if (mode === "distance") {
     const segments = [];
-    const geodesic = new Cesium3.EllipsoidGeodesic();
+    const geodesic = new Cesium4.EllipsoidGeodesic();
     for (let i = 0; i < cartoPositions.length - 1; i++) {
       geodesic.setEndPoints(cartoPositions[i], cartoPositions[i + 1]);
       segments.push(geodesic.surfaceDistance);
@@ -1908,7 +2151,7 @@ function measure(viewer, params) {
     const totalMeters = segments.reduce((a, b) => a + b, 0);
     if (showOnMap) {
       const cartesians2 = positions.map(
-        ([lon, lat, alt]) => Cesium3.Cartesian3.fromDegrees(lon, lat, alt ?? 0)
+        ([lon, lat, alt]) => Cesium4.Cartesian3.fromDegrees(lon, lat, alt ?? 0)
       );
       const measureId = id ?? `measure_${Date.now()}`;
       viewer.entities.removeById(measureId);
@@ -1918,8 +2161,8 @@ function measure(viewer, params) {
         polyline: {
           positions: cartesians2,
           width: 3,
-          material: new Cesium3.PolylineDashMaterialProperty({
-            color: Cesium3.Color.YELLOW,
+          material: new Cesium4.PolylineDashMaterialProperty({
+            color: Cesium4.Color.YELLOW,
             dashLength: 16
           }),
           clampToGround: true
@@ -1929,15 +2172,15 @@ function measure(viewer, params) {
       const mid = positions[midIdx];
       viewer.entities.add({
         id: `${measureId}_label`,
-        position: Cesium3.Cartesian3.fromDegrees(mid[0], mid[1], (mid[2] ?? 0) + 50),
+        position: Cesium4.Cartesian3.fromDegrees(mid[0], mid[1], (mid[2] ?? 0) + 50),
         label: {
           text: totalMeters >= 1e3 ? `${(totalMeters / 1e3).toFixed(2)} km` : `${totalMeters.toFixed(1)} m`,
           font: "14px sans-serif",
-          fillColor: Cesium3.Color.YELLOW,
-          outlineColor: Cesium3.Color.BLACK,
+          fillColor: Cesium4.Color.YELLOW,
+          outlineColor: Cesium4.Color.BLACK,
           outlineWidth: 2,
-          style: Cesium3.LabelStyle.FILL_AND_OUTLINE,
-          pixelOffset: new Cesium3.Cartesian2(0, -20),
+          style: Cesium4.LabelStyle.FILL_AND_OUTLINE,
+          pixelOffset: new Cesium4.Cartesian2(0, -20),
           disableDepthTestDistance: Number.POSITIVE_INFINITY
         }
       });
@@ -1951,7 +2194,7 @@ function measure(viewer, params) {
     };
   }
   const cartesians = positions.map(
-    ([lon, lat, alt]) => Cesium3.Cartesian3.fromDegrees(lon, lat, alt ?? 0)
+    ([lon, lat, alt]) => Cesium4.Cartesian3.fromDegrees(lon, lat, alt ?? 0)
   );
   const areaSqM = computeSphericalArea(cartoPositions);
   if (showOnMap) {
@@ -1961,18 +2204,18 @@ function measure(viewer, params) {
     viewer.entities.add({
       id: measureId,
       polygon: {
-        hierarchy: new Cesium3.PolygonHierarchy(cartesians),
-        material: Cesium3.Color.YELLOW.withAlpha(0.3),
+        hierarchy: new Cesium4.PolygonHierarchy(cartesians),
+        material: Cesium4.Color.YELLOW.withAlpha(0.3),
         outline: true,
-        outlineColor: Cesium3.Color.YELLOW,
+        outlineColor: Cesium4.Color.YELLOW,
         outlineWidth: 2
       }
     });
-    const center = Cesium3.BoundingSphere.fromPoints(cartesians).center;
-    const centerCarto = Cesium3.Cartographic.fromCartesian(center);
+    const center = Cesium4.BoundingSphere.fromPoints(cartesians).center;
+    const centerCarto = Cesium4.Cartographic.fromCartesian(center);
     viewer.entities.add({
       id: `${measureId}_label`,
-      position: Cesium3.Cartesian3.fromRadians(
+      position: Cesium4.Cartesian3.fromRadians(
         centerCarto.longitude,
         centerCarto.latitude,
         centerCarto.height + 50
@@ -1980,10 +2223,10 @@ function measure(viewer, params) {
       label: {
         text: areaSqM >= 1e6 ? `${(areaSqM / 1e6).toFixed(3)} km\xB2` : `${areaSqM.toFixed(1)} m\xB2`,
         font: "14px sans-serif",
-        fillColor: Cesium3.Color.YELLOW,
-        outlineColor: Cesium3.Color.BLACK,
+        fillColor: Cesium4.Color.YELLOW,
+        outlineColor: Cesium4.Color.BLACK,
         outlineWidth: 2,
-        style: Cesium3.LabelStyle.FILL_AND_OUTLINE,
+        style: Cesium4.LabelStyle.FILL_AND_OUTLINE,
         disableDepthTestDistance: Number.POSITIVE_INFINITY
       }
     });
@@ -2017,8 +2260,8 @@ function playTrajectory(viewer, params) {
   } = params;
   const entityId = id ?? `trajectory_${Date.now()}`;
   const totalPoints = coordinates.length;
-  const startTime = Cesium3.JulianDate.now();
-  const stopTime = Cesium3.JulianDate.addSeconds(startTime, durationSeconds, new Cesium3.JulianDate());
+  const startTime = Cesium4.JulianDate.now();
+  const stopTime = Cesium4.JulianDate.addSeconds(startTime, durationSeconds, new Cesium4.JulianDate());
   const segDists = [0];
   for (let i = 1; i < totalPoints; i++) {
     const [lon0, lat0] = coordinates[i - 1];
@@ -2030,31 +2273,31 @@ function playTrajectory(viewer, params) {
     segDists.push(segDists[i - 1] + dist);
   }
   const totalDist = segDists[totalPoints - 1];
-  const positionProperty = new Cesium3.SampledPositionProperty();
+  const positionProperty = new Cesium4.SampledPositionProperty();
   positionProperty.setInterpolationOptions({
     interpolationDegree: 1,
-    interpolationAlgorithm: Cesium3.LinearApproximation
+    interpolationAlgorithm: Cesium4.LinearApproximation
   });
   for (let i = 0; i < totalPoints; i++) {
     const fraction = totalDist > 0 ? segDists[i] / totalDist : i / (totalPoints - 1);
-    const time = Cesium3.JulianDate.addSeconds(startTime, fraction * durationSeconds, new Cesium3.JulianDate());
+    const time = Cesium4.JulianDate.addSeconds(startTime, fraction * durationSeconds, new Cesium4.JulianDate());
     const coord = coordinates[i];
     const lon = coord[0];
     const lat = coord[1];
     const alt = coord.length > 2 ? coord[2] ?? 0 : 0;
-    positionProperty.addSample(time, Cesium3.Cartesian3.fromDegrees(lon, lat, alt));
+    positionProperty.addSample(time, Cesium4.Cartesian3.fromDegrees(lon, lat, alt));
   }
   const pathPositions = coordinates.map(
-    (c) => Cesium3.Cartesian3.fromDegrees(c[0], c[1], c.length > 2 ? c[2] ?? 0 : 0)
+    (c) => Cesium4.Cartesian3.fromDegrees(c[0], c[1], c.length > 2 ? c[2] ?? 0 : 0)
   );
   const trailEntity = viewer.entities.add({
     id: `${entityId}_trail`,
     polyline: {
       positions: pathPositions,
       width: 2,
-      material: new Cesium3.PolylineGlowMaterialProperty({
+      material: new Cesium4.PolylineGlowMaterialProperty({
         glowPower: 0.2,
-        color: Cesium3.Color.CYAN.withAlpha(0.6)
+        color: Cesium4.Color.CYAN.withAlpha(0.6)
       }),
       clampToGround: true
     }
@@ -2062,38 +2305,38 @@ function playTrajectory(viewer, params) {
   const movingEntity = viewer.entities.add({
     id: entityId,
     position: positionProperty,
-    orientation: new Cesium3.VelocityOrientationProperty(positionProperty),
+    orientation: new Cesium4.VelocityOrientationProperty(positionProperty),
     point: {
       pixelSize: 12,
-      color: Cesium3.Color.fromCssColorString("#F59E0B"),
-      outlineColor: Cesium3.Color.WHITE,
+      color: Cesium4.Color.fromCssColorString("#F59E0B"),
+      outlineColor: Cesium4.Color.WHITE,
       outlineWidth: 2
     },
     path: {
       leadTime: 0,
       trailTime: trailSeconds,
       width: 4,
-      material: new Cesium3.PolylineGlowMaterialProperty({
+      material: new Cesium4.PolylineGlowMaterialProperty({
         glowPower: 0.3,
-        color: Cesium3.Color.fromCssColorString("#F59E0B")
+        color: Cesium4.Color.fromCssColorString("#F59E0B")
       })
     },
     label: label ? {
       text: label,
       font: "14px sans-serif",
-      fillColor: Cesium3.Color.WHITE,
-      outlineColor: Cesium3.Color.BLACK,
+      fillColor: Cesium4.Color.WHITE,
+      outlineColor: Cesium4.Color.BLACK,
       outlineWidth: 2,
-      style: Cesium3.LabelStyle.FILL_AND_OUTLINE,
-      pixelOffset: new Cesium3.Cartesian2(0, -24),
-      verticalOrigin: Cesium3.VerticalOrigin.BOTTOM
+      style: Cesium4.LabelStyle.FILL_AND_OUTLINE,
+      pixelOffset: new Cesium4.Cartesian2(0, -24),
+      verticalOrigin: Cesium4.VerticalOrigin.BOTTOM
     } : void 0
   });
   const clock = viewer.clock;
   clock.startTime = startTime.clone();
   clock.stopTime = stopTime.clone();
   clock.currentTime = startTime.clone();
-  clock.clockRange = Cesium3.ClockRange.LOOP_STOP;
+  clock.clockRange = Cesium4.ClockRange.LOOP_STOP;
   clock.multiplier = 1;
   clock.shouldAnimate = true;
   if (viewer.timeline) {
@@ -2107,8 +2350,8 @@ function playTrajectory(viewer, params) {
   const east = Math.max(...lons) + pad;
   const north = Math.max(...lats) + pad;
   viewer.camera.flyTo({
-    destination: Cesium3.Rectangle.fromDegrees(west, south, east, north),
-    orientation: { heading: 0, pitch: Cesium3.Math.toRadians(-90), roll: 0 },
+    destination: Cesium4.Rectangle.fromDegrees(west, south, east, north),
+    orientation: { heading: 0, pitch: Cesium4.Math.toRadians(-90), roll: 0 },
     duration: 1.5
   });
   const stop = () => {
@@ -2129,11 +2372,11 @@ function playTrajectory(viewer, params) {
 function lookAtTransform(viewer, params) {
   const { longitude, latitude, height = 0, heading = 0, pitch = -45, range = 1e3 } = params;
   validateCoordinate(longitude, latitude, height);
-  const center = Cesium3.Cartesian3.fromDegrees(longitude, latitude, height);
-  const transform = Cesium3.Transforms.eastNorthUpToFixedFrame(center);
-  const hpr = new Cesium3.HeadingPitchRange(
-    Cesium3.Math.toRadians(heading),
-    Cesium3.Math.toRadians(pitch),
+  const center = Cesium4.Cartesian3.fromDegrees(longitude, latitude, height);
+  const transform = Cesium4.Transforms.eastNorthUpToFixedFrame(center);
+  const hpr = new Cesium4.HeadingPitchRange(
+    Cesium4.Math.toRadians(heading),
+    Cesium4.Math.toRadians(pitch),
     range
   );
   viewer.camera.lookAtTransform(transform, hpr);
@@ -2169,7 +2412,7 @@ function setCameraOptions(viewer, params) {
   }
 }
 function addBillboard(viewer, params) {
-  const position = Cesium3.Cartesian3.fromDegrees(params.longitude, params.latitude, params.height ?? 0);
+  const position = Cesium4.Cartesian3.fromDegrees(params.longitude, params.latitude, params.height ?? 0);
   return viewer.entities.add({
     name: params.name,
     position,
@@ -2177,21 +2420,21 @@ function addBillboard(viewer, params) {
       image: params.image,
       scale: params.scale ?? 1,
       color: params.color ? parseColor(params.color) : void 0,
-      pixelOffset: new Cesium3.Cartesian2(params.pixelOffset?.x ?? 0, params.pixelOffset?.y ?? 0),
-      horizontalOrigin: Cesium3.HorizontalOrigin[params.horizontalOrigin ?? "CENTER"],
-      verticalOrigin: Cesium3.VerticalOrigin[params.verticalOrigin ?? "CENTER"],
-      heightReference: Cesium3.HeightReference[params.heightReference ?? "NONE"],
+      pixelOffset: new Cesium4.Cartesian2(params.pixelOffset?.x ?? 0, params.pixelOffset?.y ?? 0),
+      horizontalOrigin: Cesium4.HorizontalOrigin[params.horizontalOrigin ?? "CENTER"],
+      verticalOrigin: Cesium4.VerticalOrigin[params.verticalOrigin ?? "CENTER"],
+      heightReference: Cesium4.HeightReference[params.heightReference ?? "NONE"],
       disableDepthTestDistance: Number.POSITIVE_INFINITY
     }
   });
 }
 function addBox(viewer, params) {
-  const position = Cesium3.Cartesian3.fromDegrees(params.longitude, params.latitude, params.height ?? 0);
+  const position = Cesium4.Cartesian3.fromDegrees(params.longitude, params.latitude, params.height ?? 0);
   const opts = {
     name: params.name,
     position,
     box: {
-      dimensions: new Cesium3.Cartesian3(
+      dimensions: new Cesium4.Cartesian3(
         params.dimensions.width,
         params.dimensions.length,
         params.dimensions.height
@@ -2200,7 +2443,7 @@ function addBox(viewer, params) {
       outline: params.outline ?? true,
       outlineColor: params.outlineColor ? parseColor(params.outlineColor) : void 0,
       fill: params.fill ?? true,
-      heightReference: params.heightReference ? Cesium3.HeightReference[params.heightReference] : void 0
+      heightReference: params.heightReference ? Cesium4.HeightReference[params.heightReference] : void 0
     }
   };
   if (params.orientation) {
@@ -2213,10 +2456,10 @@ function addCorridor(viewer, params) {
   return viewer.entities.add({
     name: params.name,
     corridor: {
-      positions: Cesium3.Cartesian3.fromDegreesArrayHeights(posArray),
+      positions: Cesium4.Cartesian3.fromDegreesArrayHeights(posArray),
       width: params.width,
       material: resolveMaterial(params.material),
-      cornerType: params.cornerType ? Cesium3.CornerType[params.cornerType] : Cesium3.CornerType.ROUNDED,
+      cornerType: params.cornerType ? Cesium4.CornerType[params.cornerType] : Cesium4.CornerType.ROUNDED,
       height: params.height,
       extrudedHeight: params.extrudedHeight,
       outline: params.outline ?? false,
@@ -2225,7 +2468,7 @@ function addCorridor(viewer, params) {
   });
 }
 function addCylinder(viewer, params) {
-  const position = Cesium3.Cartesian3.fromDegrees(params.longitude, params.latitude, params.height ?? 0);
+  const position = Cesium4.Cartesian3.fromDegrees(params.longitude, params.latitude, params.height ?? 0);
   const opts = {
     name: params.name,
     position,
@@ -2247,7 +2490,7 @@ function addCylinder(viewer, params) {
   return viewer.entities.add(opts);
 }
 function addEllipse(viewer, params) {
-  const position = Cesium3.Cartesian3.fromDegrees(params.longitude, params.latitude, params.height ?? 0);
+  const position = Cesium4.Cartesian3.fromDegrees(params.longitude, params.latitude, params.height ?? 0);
   return viewer.entities.add({
     name: params.name,
     position,
@@ -2270,7 +2513,7 @@ function addRectangle(viewer, params) {
   return viewer.entities.add({
     name: params.name,
     rectangle: {
-      coordinates: Cesium3.Rectangle.fromDegrees(params.west, params.south, params.east, params.north),
+      coordinates: Cesium4.Rectangle.fromDegrees(params.west, params.south, params.east, params.north),
       material: resolveMaterial(params.material),
       height: params.height,
       extrudedHeight: params.extrudedHeight,
@@ -2287,7 +2530,7 @@ function addWall(viewer, params) {
   return viewer.entities.add({
     name: params.name,
     wall: {
-      positions: Cesium3.Cartesian3.fromDegreesArrayHeights(posArray),
+      positions: Cesium4.Cartesian3.fromDegreesArrayHeights(posArray),
       minimumHeights: params.minimumHeights,
       maximumHeights: params.maximumHeights,
       material: resolveMaterial(params.material),
@@ -2312,43 +2555,43 @@ function createAnimation(viewer, params, animations) {
   if (!waypoints || waypoints.length < 2) {
     throw new Error("Animation requires at least 2 waypoints");
   }
-  const positionProperty = new Cesium3.SampledPositionProperty();
+  const positionProperty = new Cesium4.SampledPositionProperty();
   for (const wp of waypoints) {
-    const time = Cesium3.JulianDate.fromIso8601(wp.time);
-    const position = Cesium3.Cartesian3.fromDegrees(wp.longitude, wp.latitude, wp.height ?? 0);
+    const time = Cesium4.JulianDate.fromIso8601(wp.time);
+    const position = Cesium4.Cartesian3.fromDegrees(wp.longitude, wp.latitude, wp.height ?? 0);
     positionProperty.addSample(time, position);
   }
   positionProperty.setInterpolationOptions({
     interpolationDegree: 2,
-    interpolationAlgorithm: Cesium3.LagrangePolynomialApproximation
+    interpolationAlgorithm: Cesium4.LagrangePolynomialApproximation
   });
   const modelUri = resolveModelUri(params.modelUri);
   const entity = viewer.entities.add({
     name,
     position: positionProperty,
-    orientation: new Cesium3.VelocityOrientationProperty(positionProperty),
+    orientation: new Cesium4.VelocityOrientationProperty(positionProperty),
     model: modelUri ? {
       uri: modelUri,
       minimumPixelSize: 64,
       maximumScale: 200
     } : void 0,
-    path: showPath ? new Cesium3.PathGraphics({
+    path: showPath ? new Cesium4.PathGraphics({
       width: pathWidth,
-      material: new Cesium3.PolylineGlowMaterialProperty({
+      material: new Cesium4.PolylineGlowMaterialProperty({
         glowPower: 0.1,
         color: parseColor(pathColor)
       }),
       leadTime: pathLeadTime,
       trailTime: pathTrailTime
     }) : void 0,
-    point: !modelUri ? { pixelSize: 10, color: Cesium3.Color.RED } : void 0
+    point: !modelUri ? { pixelSize: 10, color: Cesium4.Color.RED } : void 0
   });
-  const startTime = Cesium3.JulianDate.fromIso8601(waypoints[0].time);
-  const stopTime = Cesium3.JulianDate.fromIso8601(waypoints[waypoints.length - 1].time);
+  const startTime = Cesium4.JulianDate.fromIso8601(waypoints[0].time);
+  const stopTime = Cesium4.JulianDate.fromIso8601(waypoints[waypoints.length - 1].time);
   viewer.clock.startTime = startTime.clone();
   viewer.clock.stopTime = stopTime.clone();
   viewer.clock.currentTime = startTime.clone();
-  viewer.clock.clockRange = Cesium3.ClockRange.LOOP_STOP;
+  viewer.clock.clockRange = Cesium4.ClockRange.LOOP_STOP;
   viewer.clock.multiplier = multiplier;
   viewer.clock.shouldAnimate = shouldAnimate;
   animations.set(entity.id, { startTime, stopTime });
@@ -2371,8 +2614,8 @@ function listAnimations(viewer, animations) {
     result.push({
       entityId,
       name: entity?.name,
-      startTime: Cesium3.JulianDate.toIso8601(info.startTime),
-      stopTime: Cesium3.JulianDate.toIso8601(info.stopTime),
+      startTime: Cesium4.JulianDate.toIso8601(info.startTime),
+      stopTime: Cesium4.JulianDate.toIso8601(info.stopTime),
       exists: !!entity
     });
   }
@@ -2381,16 +2624,16 @@ function listAnimations(viewer, animations) {
 function updateAnimationPath(viewer, params) {
   const entity = viewer.entities.getById(params.entityId);
   if (!entity?.path) return false;
-  if (params.width !== void 0) entity.path.width = new Cesium3.ConstantProperty(params.width);
+  if (params.width !== void 0) entity.path.width = new Cesium4.ConstantProperty(params.width);
   if (params.color !== void 0) {
-    entity.path.material = new Cesium3.PolylineGlowMaterialProperty({
+    entity.path.material = new Cesium4.PolylineGlowMaterialProperty({
       glowPower: 0.1,
       color: parseColor(params.color)
     });
   }
-  if (params.leadTime !== void 0) entity.path.leadTime = new Cesium3.ConstantProperty(params.leadTime);
-  if (params.trailTime !== void 0) entity.path.trailTime = new Cesium3.ConstantProperty(params.trailTime);
-  if (params.show !== void 0) entity.path.show = new Cesium3.ConstantProperty(params.show);
+  if (params.leadTime !== void 0) entity.path.leadTime = new Cesium4.ConstantProperty(params.leadTime);
+  if (params.trailTime !== void 0) entity.path.trailTime = new Cesium4.ConstantProperty(params.trailTime);
+  if (params.show !== void 0) entity.path.show = new Cesium4.ConstantProperty(params.show);
   return true;
 }
 function trackEntity(viewer, params) {
@@ -2401,9 +2644,9 @@ function trackEntity(viewer, params) {
     if (params.heading !== void 0 || params.pitch !== void 0 || params.range !== void 0) {
       const position = entity.position?.getValue(viewer.clock.currentTime);
       if (position) {
-        const hpr = new Cesium3.HeadingPitchRange(
-          Cesium3.Math.toRadians(params.heading ?? 0),
-          Cesium3.Math.toRadians(params.pitch ?? -30),
+        const hpr = new Cesium4.HeadingPitchRange(
+          Cesium4.Math.toRadians(params.heading ?? 0),
+          Cesium4.Math.toRadians(params.pitch ?? -30),
           params.range ?? 500
         );
         viewer.camera.lookAt(position, hpr);
@@ -2416,15 +2659,15 @@ function trackEntity(viewer, params) {
 function controlClock(viewer, params) {
   switch (params.action) {
     case "configure":
-      if (params.startTime) viewer.clock.startTime = Cesium3.JulianDate.fromIso8601(params.startTime);
-      if (params.stopTime) viewer.clock.stopTime = Cesium3.JulianDate.fromIso8601(params.stopTime);
-      if (params.currentTime) viewer.clock.currentTime = Cesium3.JulianDate.fromIso8601(params.currentTime);
+      if (params.startTime) viewer.clock.startTime = Cesium4.JulianDate.fromIso8601(params.startTime);
+      if (params.stopTime) viewer.clock.stopTime = Cesium4.JulianDate.fromIso8601(params.stopTime);
+      if (params.currentTime) viewer.clock.currentTime = Cesium4.JulianDate.fromIso8601(params.currentTime);
       if (params.multiplier !== void 0) viewer.clock.multiplier = params.multiplier;
       if (params.shouldAnimate !== void 0) viewer.clock.shouldAnimate = params.shouldAnimate;
-      if (params.clockRange) viewer.clock.clockRange = Cesium3.ClockRange[params.clockRange];
+      if (params.clockRange) viewer.clock.clockRange = Cesium4.ClockRange[params.clockRange];
       break;
     case "setTime":
-      if (params.time) viewer.clock.currentTime = Cesium3.JulianDate.fromIso8601(params.time);
+      if (params.time) viewer.clock.currentTime = Cesium4.JulianDate.fromIso8601(params.time);
       break;
     case "setMultiplier":
       if (params.multiplier !== void 0) viewer.clock.multiplier = params.multiplier;
@@ -2486,9 +2729,9 @@ function setPostProcess(viewer, params) {
   if (params.fxaa !== void 0) stages.fxaa.enabled = params.fxaa;
 }
 var EDGE_MODE_MAP = {
-  surfaces_only: Cesium3.EdgeDisplayMode.SURFACES_ONLY,
-  surfaces_and_edges: Cesium3.EdgeDisplayMode.SURFACES_AND_EDGES,
-  edges_only: Cesium3.EdgeDisplayMode.EDGES_ONLY
+  surfaces_only: Cesium4.EdgeDisplayMode.SURFACES_ONLY,
+  surfaces_and_edges: Cesium4.EdgeDisplayMode.SURFACES_AND_EDGES,
+  edges_only: Cesium4.EdgeDisplayMode.EDGES_ONLY
 };
 function setEdgeDisplayMode(viewer, layerManager, params) {
   const mode = EDGE_MODE_MAP[params.mode];
@@ -2506,7 +2749,7 @@ function setEdgeDisplayMode(viewer, layerManager, params) {
     const primitives = viewer.scene.primitives;
     for (let i = 0; i < primitives.length; i++) {
       const p = primitives.get(i);
-      if (p instanceof Cesium3.Cesium3DTileset) {
+      if (p instanceof Cesium4.Cesium3DTileset) {
         p.edgeDisplayMode = mode;
         applied++;
       }
@@ -2555,6 +2798,10 @@ var CesiumBridge = class {
         case "addGeoJsonPrimitive": {
           const info = await this.addGeoJsonPrimitive(p);
           return { success: true, data: info, message: `GeoJSON primitive '${info.name}' added` };
+        }
+        case "addYellowModel": {
+          const info = await this.addYellowModel(p);
+          return { success: true, data: info, message: `Yellow model layer '${info.name}' added` };
         }
         case "addHeatmap": {
           const info = await this.addHeatmap(p);
@@ -2735,7 +2982,7 @@ var CesiumBridge = class {
           return { success: true, data: result, message: `Edge display mode set on ${result.applied} tileset(s)` };
         }
         case "setIonToken":
-          Cesium3.Ion.defaultAccessToken = p.token;
+          Cesium4.Ion.defaultAccessToken = p.token;
           return { success: true, message: "Cesium Ion access token updated" };
         // ==================== Batch & Query ====================
         case "batchAddEntities": {
@@ -2795,6 +3042,9 @@ var CesiumBridge = class {
   }
   addGeoJsonPrimitive(params) {
     return this._layerManager.addGeoJsonPrimitive(params);
+  }
+  addYellowModel(params) {
+    return this._layerManager.addYellowModel(params);
   }
   addHeatmap(params) {
     return this._layerManager.addHeatmap(params);
@@ -2912,8 +3162,9 @@ var CesiumBridge = class {
     if (!data) return 0;
     if (params.dataRefId) {
       const existingRefs = this._layerManager.getCesiumRefs(params.dataRefId);
-      if (existingRefs?.dataSource) {
-        return this._attachLabelsToDataSource(existingRefs.dataSource, params);
+      const ds = existingRefs?.dataSource;
+      if (ds && !(ds instanceof Cesium4.CustomDataSource)) {
+        return this._attachLabelsToDataSource(ds, params);
       }
     }
     const entities = addLabels(this._viewer, data, params);
@@ -2934,28 +3185,28 @@ var CesiumBridge = class {
   _attachLabelsToDataSource(ds, params) {
     const { field, style } = params;
     const font = style?.font ?? "12px sans-serif";
-    const fillColor = style?.fillColor ? Cesium3.Color.fromCssColorString(style.fillColor) : Cesium3.Color.WHITE;
-    const outlineColor = style?.outlineColor ? Cesium3.Color.fromCssColorString(style.outlineColor) : Cesium3.Color.BLACK;
+    const fillColor = style?.fillColor ? Cesium4.Color.fromCssColorString(style.fillColor) : Cesium4.Color.WHITE;
+    const outlineColor = style?.outlineColor ? Cesium4.Color.fromCssColorString(style.outlineColor) : Cesium4.Color.BLACK;
     const outlineWidth = style?.outlineWidth ?? 2;
-    const pixelOffset = style?.pixelOffset ? new Cesium3.Cartesian2(style.pixelOffset[0], style.pixelOffset[1]) : new Cesium3.Cartesian2(0, -16);
+    const pixelOffset = style?.pixelOffset ? new Cesium4.Cartesian2(style.pixelOffset[0], style.pixelOffset[1]) : new Cesium4.Cartesian2(0, -16);
     let count = 0;
     const entities = ds.entities.values;
     for (let i = 0; i < entities.length; i++) {
       const e = entities[i];
       if (!e.properties || !e.position) continue;
-      const val = e.properties[field]?.getValue(Cesium3.JulianDate.now());
+      const val = e.properties[field]?.getValue(Cesium4.JulianDate.now());
       if (val == null || val === "") continue;
-      e.label = new Cesium3.LabelGraphics({
+      e.label = new Cesium4.LabelGraphics({
         text: String(val),
         font,
         fillColor,
         outlineColor,
         outlineWidth,
-        style: Cesium3.LabelStyle.FILL_AND_OUTLINE,
+        style: Cesium4.LabelStyle.FILL_AND_OUTLINE,
         pixelOffset,
         scale: style?.scale ?? 1,
-        verticalOrigin: Cesium3.VerticalOrigin.BOTTOM,
-        heightReference: Cesium3.HeightReference.CLAMP_TO_GROUND,
+        verticalOrigin: Cesium4.VerticalOrigin.BOTTOM,
+        heightReference: Cesium4.HeightReference.CLAMP_TO_GROUND,
         disableDepthTestDistance: Number.POSITIVE_INFINITY
       });
       count++;

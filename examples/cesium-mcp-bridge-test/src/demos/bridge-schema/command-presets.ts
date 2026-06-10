@@ -22,6 +22,41 @@ const MINI_HEATMAP_GEOJSON = {
   }],
 }
 
+/** addYellowModel 专用：含高度的 Polygon（底面为各面最低点，Z 为相对挤压高度） */
+export const YELLOW_MODEL_DEMO_GEOJSON = {
+  type: 'FeatureCollection',
+  features: [
+    {
+      type: 'Feature',
+      properties: { name: 'Building A' },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [116.3900, 39.9100, 50],
+          [116.3915, 39.9100, 80],
+          [116.3915, 39.9115, 95],
+          [116.3900, 39.9115, 65],
+          [116.3900, 39.9100, 50],
+        ]],
+      },
+    },
+    {
+      type: 'Feature',
+      properties: { name: 'Building B' },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [116.3920, 39.9095, 30],
+          [116.3935, 39.9095, 55],
+          [116.3935, 39.9108, 70],
+          [116.3920, 39.9108, 45],
+          [116.3920, 39.9095, 30],
+        ]],
+      },
+    },
+  ],
+}
+
 export const COMMAND_PARAM_PRESETS: Record<string, Record<string, unknown>> = {
   flyTo: { longitude: 116.39, latitude: 39.91, height: 5000 },
   setView: { longitude: 121.47, latitude: 31.23, height: 8000, heading: 0, pitch: -45, roll: 0 },
@@ -53,6 +88,17 @@ export const COMMAND_PARAM_PRESETS: Record<string, Record<string, unknown>> = {
         geometry: { type: 'Point', coordinates: [116.39, 39.91] },
         properties: {},
       }],
+    },
+  },
+  addYellowModel: {
+    id: 'yellow-model-demo',
+    name: '黄色挤压面示例',
+    data: YELLOW_MODEL_DEMO_GEOJSON,
+    style: {
+      strokeWidth: 2,
+      color: '#FF8F00',
+      opacity: 0.85,
+      outlineColor: '#B8860B',
     },
   },
   addHeatmap: { id: 'heatmap1', data: MINI_HEATMAP_GEOJSON, radius: 40 },

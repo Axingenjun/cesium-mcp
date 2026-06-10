@@ -72,11 +72,13 @@
         <div class="btn-grid">
           <button type="button" class="btn primary" onclick="addCitiesLayer()" data-i18n="btn.chinaCities">中国主要城市</button>
           <button type="button" class="btn primary" onclick="addRandomPolygon()" data-i18n="btn.randomPoly">随机多边形</button>
+          <button type="button" class="btn primary" onclick="addYellowModelDemo()" data-i18n="btn.yellowModel">黄色挤压面</button>
           <button type="button" class="btn primary" onclick="addPolylineLayer()" data-i18n="btn.airline">航线图层</button>
         </div>
         <div class="btn-grid section-actions">
           <button type="button" class="btn destructive" onclick="cmd('removeLayer',{id:'cities'})" data-i18n="btn.rmCities">- 城市</button>
           <button type="button" class="btn destructive" onclick="cmd('removeLayer',{id:'polygon1'})" data-i18n="btn.rmPoly">- 多边形</button>
+          <button type="button" class="btn destructive" onclick="cmd('removeLayer',{id:'yellow-model-demo'})" data-i18n="btn.rmYellowModel">- 挤压面</button>
           <button type="button" class="btn destructive" onclick="cmd('removeLayer',{id:'airline1'})" data-i18n="btn.rmAirline">- 航线</button>
         </div>
       </div>

@@ -1,15 +1,5 @@
 import * as Cesium from 'cesium';
 
-/**
- * 颜色输入格式：CSS 字符串或 RGBA 对象 (0-1 范围)
- */
-type ColorInput = string | {
-    red: number;
-    green: number;
-    blue: number;
-    alpha?: number;
-};
-
 interface BridgeCommand {
     action: string;
     params: Record<string, unknown>;
@@ -102,6 +92,27 @@ interface AddGeoJsonPrimitiveParams {
     url?: string;
     allowPicking?: boolean;
     show?: boolean;
+}
+/** 黄色渐变挤压面模型样式（仅 Polygon GeoJSON） */
+interface YellowModelStyle {
+    /** 边框线宽，默认 2 */
+    strokeWidth?: number;
+    /** 面填充不透明度，默认 0.85 */
+    opacity?: number;
+    /** 渐变低端色（低海拔），默认 #FFF9C4 */
+    lowColor?: string;
+    /** 渐变高端色（高海拔），默认 #FF8F00 */
+    highColor?: string;
+    /** 边框线颜色，默认 #B8860B */
+    outlineColor?: string;
+}
+interface AddYellowModelParams {
+    id?: string;
+    name?: string;
+    data?: Record<string, unknown>;
+    url?: string;
+    dataRefId?: string;
+    style?: YellowModelStyle;
 }
 interface AddHeatmapParams {
     id?: string;
@@ -389,6 +400,15 @@ interface MaterialSpec {
         y: number;
     };
 }
+/**
+ * 颜色输入格式：CSS 字符串或 RGBA 对象 (0-1 范围)
+ */
+type ColorInput = string | {
+    red: number;
+    green: number;
+    blue: number;
+    alpha?: number;
+};
 type MaterialInput = ColorInput | MaterialSpec;
 interface OrientationInput {
     heading: number;
@@ -632,7 +652,7 @@ interface LoadViewpointParams {
 }
 
 interface CesiumRefs {
-    dataSource?: Cesium.GeoJsonDataSource | Cesium.CzmlDataSource | Cesium.KmlDataSource;
+    dataSource?: Cesium.GeoJsonDataSource | Cesium.CzmlDataSource | Cesium.KmlDataSource | Cesium.CustomDataSource;
     entity?: Cesium.Entity;
     labelEntities?: Cesium.Entity[];
     tileset?: Cesium.Cesium3DTileset;
@@ -651,6 +671,7 @@ declare class LayerManager {
     getCesiumRefs(layerId: string): CesiumRefs | undefined;
     setCesiumRefs(layerId: string, refs: Partial<CesiumRefs>): void;
     addGeoJsonLayer(params: AddGeoJsonLayerParams): Promise<LayerInfo>;
+    addYellowModel(params: AddYellowModelParams): Promise<LayerInfo>;
     addGeoJsonPrimitive(params: AddGeoJsonPrimitiveParams): Promise<LayerInfo>;
     addHeatmap(params: AddHeatmapParams): Promise<LayerInfo>;
     removeLayer(id: string): void;
@@ -701,6 +722,7 @@ declare class CesiumBridge {
     zoomToExtent(params: ZoomToExtentParams): Promise<void>;
     addGeoJsonLayer(params: AddGeoJsonLayerParams): Promise<LayerInfo>;
     addGeoJsonPrimitive(params: AddGeoJsonPrimitiveParams): Promise<LayerInfo>;
+    addYellowModel(params: AddYellowModelParams): Promise<LayerInfo>;
     addHeatmap(params: AddHeatmapParams): Promise<LayerInfo>;
     removeLayer(id: string): void;
     clearAll(): {
@@ -784,4 +806,4 @@ declare class CesiumBridge {
     private _emit;
 }
 
-export { type AddBillboardParams, type AddBoxParams, type AddCorridorParams, type AddCylinderParams, type AddEllipseParams, type AddGaussianSplatParams, type AddGeoJsonLayerParams, type AddGeoJsonPrimitiveParams, type AddHeatmapParams, type AddLabelParams, type AddMarkerParams, type AddModelParams, type AddPolygonParams, type AddPolylineParams, type AddRectangleParams, type AddWallParams, type AnimationInfo, type AnimationWaypoint, type BatchAddEntitiesParams, type BatchEntityDef, type BridgeCommand, type BridgeEvent, type BridgeEventHandler, type BridgeEventType, type BridgeResult, type CategoryStyle, CesiumBridge, type ChoroplethStyle, type ClearAllResult, type ColorInput, type ControlAnimationParams, type ControlClockParams, type CreateAnimationParams, type EntityPropertiesResult, type ExportSceneResult, type FlyToParams, type GetEntityPropertiesParams, type HighlightParams, type LayerInfo, LayerManager, type LayerStyle, type Load3dTilesParams, type LoadCzmlParams, type LoadImageryServiceParams, type LoadKmlParams, type LoadTerrainParams, type LoadViewpointParams, type LookAtTransformParams, type MaterialInput, type MaterialSpec, type MeasureParams, type MeasureResult, type OrientationInput, type PlayTrajectoryParams, type PositionDegrees, type QueryEntitiesParams, type QueryEntityResult, type RemoveAnimationParams, type RemoveEntityParams, type SaveViewpointParams, type ScreenshotResult, type SetBasemapParams, type SetCameraOptionsParams, type SetEdgeDisplayModeParams, type SetEdgeDisplayModeResult, type SetGlobeLightingParams, type SetPostProcessParams, type SetSceneOptionsParams, type SetViewParams, type StartOrbitParams, type TrackEntityParams, type UpdateAnimationPathParams, type UpdateEntityParams, type UpdateLayerStyleParams, type ViewState, type ZoomToExtentParams };
+export { type AddBillboardParams, type AddBoxParams, type AddCorridorParams, type AddCylinderParams, type AddEllipseParams, type AddGaussianSplatParams, type AddGeoJsonLayerParams, type AddGeoJsonPrimitiveParams, type AddHeatmapParams, type AddLabelParams, type AddMarkerParams, type AddModelParams, type AddPolygonParams, type AddPolylineParams, type AddRectangleParams, type AddWallParams, type AddYellowModelParams, type AnimationInfo, type AnimationWaypoint, type BatchAddEntitiesParams, type BatchEntityDef, type BridgeCommand, type BridgeEvent, type BridgeEventHandler, type BridgeEventType, type BridgeResult, type CategoryStyle, CesiumBridge, type ChoroplethStyle, type ClearAllResult, type ColorInput, type ControlAnimationParams, type ControlClockParams, type CreateAnimationParams, type EntityPropertiesResult, type ExportSceneResult, type FlyToParams, type GetEntityPropertiesParams, type HighlightParams, type LayerInfo, LayerManager, type LayerStyle, type Load3dTilesParams, type LoadCzmlParams, type LoadImageryServiceParams, type LoadKmlParams, type LoadTerrainParams, type LoadViewpointParams, type LookAtTransformParams, type MaterialInput, type MaterialSpec, type MeasureParams, type MeasureResult, type OrientationInput, type PlayTrajectoryParams, type PositionDegrees, type QueryEntitiesParams, type QueryEntityResult, type RemoveAnimationParams, type RemoveEntityParams, type SaveViewpointParams, type ScreenshotResult, type SetBasemapParams, type SetCameraOptionsParams, type SetEdgeDisplayModeParams, type SetEdgeDisplayModeResult, type SetGlobeLightingParams, type SetPostProcessParams, type SetSceneOptionsParams, type SetViewParams, type StartOrbitParams, type TrackEntityParams, type UpdateAnimationPathParams, type UpdateEntityParams, type UpdateLayerStyleParams, type ViewState, type YellowModelStyle, type ZoomToExtentParams };

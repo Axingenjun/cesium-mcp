@@ -17,9 +17,27 @@ vi.mock('cesium', () => ({
   CzmlDataSource: { load: (...args: any[]) => mockLoadCzml(...args) },
   KmlDataSource: { load: (...args: any[]) => mockLoadKml(...args) },
   GeoJsonDataSource: { load: vi.fn() },
+  CustomDataSource: class { name = ''; entities = { add: vi.fn() } },
+  PolygonHierarchy: class { constructor(public a: any, public b?: any) {} },
+  Cartesian3: { fromDegrees: (...args: number[]) => ({ _deg: args }) },
+  MaterialProperty: class {},
+  Event: class {},
+  JulianDate: class MockJulianDate { static now() { return new MockJulianDate() } },
+  defined: (v: unknown) => v !== undefined && v !== null,
+  Material: { _materialCache: { addMaterial: vi.fn() } },
+  ColorMaterialProperty: class { constructor(public c: any) {} },
   ConstantProperty: class { value: any; constructor(v: any) { this.value = v } },
   HeightReference: { CLAMP_TO_GROUND: 1 },
-  Color: { fromCssColorString: (s: string) => ({ _css: s }) },
+  Color: {
+    fromCssColorString: (s: string) => ({ _css: s }),
+    equals: () => false,
+    clone: (src: any, result?: any) => result ? Object.assign(result, src) : { ...src },
+    lerp: (a: any, b: any, t: number, result: any) => {
+      if (result) return Object.assign(result, { _lerp: t })
+      return { _lerp: t }
+    },
+  },
+  Math: { clamp: (v: number, min: number, max: number) => Math.min(max, Math.max(min, v)) },
   default: {},
 }))
 
@@ -27,7 +45,14 @@ vi.mock('../utils', () => ({
   parseColor: (s: string) => ({ _css: s }),
 }))
 
-import { detectGeometryType, LayerManager } from './layer.js'
+import {
+  detectGeometryType,
+  extractPolygonRingsFromGeoJson,
+  ringMinHeight,
+  ringMaxHeight,
+  ringTopPositions,
+  LayerManager,
+} from './layer.js'
 
 function makeViewer() {
   return {
@@ -45,6 +70,67 @@ function makeViewer() {
     flyTo: vi.fn(),
   } as any
 }
+
+describe('extractPolygonRingsFromGeoJson', () => {
+  it('should extract Polygon feature', () => {
+    const rings = extractPolygonRingsFromGeoJson({
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [[[0, 0, 10], [1, 0, 20], [1, 1, 15], [0, 0, 10]]],
+        },
+      }],
+    })
+    expect(rings).toHaveLength(1)
+    expect(rings[0]!.exterior).toHaveLength(4)
+    expect(rings[0]!.holes).toHaveLength(0)
+  })
+
+  it('should extract MultiPolygon feature', () => {
+    const rings = extractPolygonRingsFromGeoJson({
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        geometry: {
+          type: 'MultiPolygon',
+          coordinates: [
+            [[[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 0, 0]]],
+            [[[2, 2, 5], [3, 2, 5], [3, 3, 5], [2, 2, 5]]],
+          ],
+        },
+      }],
+    })
+    expect(rings).toHaveLength(2)
+  })
+
+  it('should ignore non-polygon features', () => {
+    const rings = extractPolygonRingsFromGeoJson({
+      type: 'FeatureCollection',
+      features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [0, 0] } }],
+    })
+    expect(rings).toHaveLength(0)
+  })
+})
+
+describe('ringMinHeight and ringTopPositions', () => {
+  it('should use minimum height as base', () => {
+    const ring = [[116, 39, 100], [117, 39, 130], [117, 40, 115]]
+    expect(ringMinHeight(ring)).toBe(100)
+    expect(ringMaxHeight(ring)).toBe(130)
+  })
+
+  it('should default missing z to 0', () => {
+    const ring = [[116, 39], [117, 39, 20]]
+    expect(ringMinHeight(ring)).toBe(0)
+  })
+
+  it('should produce one position per coordinate', () => {
+    const ring = [[116, 39, 10], [117, 39, 30]]
+    expect(ringTopPositions(ring, 10)).toHaveLength(2)
+  })
+})
 
 describe('detectGeometryType', () => {
   it('should detect Point geometry', () => {
@@ -142,8 +228,8 @@ describe('LayerManager.loadCzml', () => {
     await mgr.loadCzml({ id: 'czml1', url: 'test.czml' })
     const layers = mgr.listLayers()
     expect(layers).toHaveLength(1)
-    expect(layers[0].id).toBe('czml1')
-    expect(layers[0].type).toBe('CZML')
+    expect(layers[0]!.id).toBe('czml1')
+    expect(layers[0]!.type).toBe('CZML')
   })
 
   it('should flyTo by default', async () => {
@@ -191,7 +277,7 @@ describe('LayerManager.loadKml', () => {
   it('should load KML from inline data (Blob)', async () => {
     const kmlString = '<?xml version="1.0"?><kml><Document><Placemark><name>Test</name></Placemark></Document></kml>'
     const info = await mgr.loadKml({ data: kmlString, name: 'Inline KML' })
-    const call = mockLoadKml.mock.calls[0]
+    const call = mockLoadKml.mock.calls[0]!
     expect(call[0]).toBeInstanceOf(Blob)
     expect(info.name).toBe('Inline KML')
   })
@@ -224,8 +310,8 @@ describe('LayerManager.loadKml', () => {
     await mgr.loadKml({ id: 'kml1', url: 'test.kml' })
     const layers = mgr.listLayers()
     expect(layers).toHaveLength(1)
-    expect(layers[0].id).toBe('kml1')
-    expect(layers[0].type).toBe('KML')
+    expect(layers[0]!.id).toBe('kml1')
+    expect(layers[0]!.type).toBe('KML')
   })
 
   it('should flyTo by default', async () => {

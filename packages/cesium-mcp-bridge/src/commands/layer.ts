@@ -1,18 +1,19 @@
 import * as Cesium from 'cesium'
 import h337 from 'heatmap.js'
 import type {
-  AddGeoJsonLayerParams, AddGeoJsonPrimitiveParams, AddHeatmapParams, LayerInfo, SetBasemapParams,
+  AddGeoJsonLayerParams, AddGeoJsonPrimitiveParams, AddHeatmapParams, AddYellowModelParams, LayerInfo, SetBasemapParams,
   CategoryStyle, Load3dTilesParams, AddGaussianSplatParams, LoadTerrainParams, LoadImageryServiceParams,
   LoadCzmlParams, LoadKmlParams, UpdateLayerStyleParams,
   GetLayerSchemaParams, LayerSchemaResult, LayerSchemaField,
 } from '../types'
 import { parseColor } from '../utils'
+import { createYellowHeightGradientMaterialProperty } from '../materials/yellow-height-gradient'
 import { BASEMAP_PRESETS } from './basemap-presets'
 
 // ==================== 图层状态（由 Bridge 实例持有） ====================
 
 interface CesiumRefs {
-  dataSource?: Cesium.GeoJsonDataSource | Cesium.CzmlDataSource | Cesium.KmlDataSource
+  dataSource?: Cesium.GeoJsonDataSource | Cesium.CzmlDataSource | Cesium.KmlDataSource | Cesium.CustomDataSource
   entity?: Cesium.Entity
   labelEntities?: Cesium.Entity[]
   tileset?: Cesium.Cesium3DTileset
@@ -187,6 +188,82 @@ export class LayerManager {
       type: geomType,
       visible: true,
       color,
+      dataRefId,
+    }
+    this._cesiumRefs.set(layerId, { dataSource: ds })
+    this._layers.push(info)
+    this._viewer.flyTo(ds, { duration: 1.5 })
+    return info
+  }
+
+  // ==================== addYellowModel ====================
+
+  async addYellowModel(params: AddYellowModelParams): Promise<LayerInfo> {
+    const { id, name, data, url, dataRefId, style } = params
+
+    if (!data && !url) throw new Error('Either "data" or "url" must be provided')
+
+    let geojson: Record<string, unknown> = data ?? {}
+    if (url) {
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(`Failed to fetch GeoJSON from url: ${url}`)
+      geojson = await res.json()
+    }
+
+    const polygons = extractPolygonRingsFromGeoJson(geojson)
+    if (!polygons.length) {
+      throw new Error('No polygon features found in GeoJSON data (only Polygon/MultiPolygon supported)')
+    }
+
+    const layerId = id ?? `yellow_model_${Date.now()}`
+    const layerName = name ?? layerId
+    const strokeWidth = style?.strokeWidth ?? 2
+    const opacity = style?.opacity ?? 0.85
+    const fillColor = parseColor(style?.color ?? '#FF8F00')
+    const outlineColor = parseColor(style?.outlineColor ?? '#B8860B')
+
+    this.removeLayer(layerId)
+
+    const ds = new Cesium.CustomDataSource(layerName)
+
+    for (const poly of polygons) {
+      const faceMinH = ringMinHeight(poly.exterior)
+      const faceMaxH = Math.max(polygonMaxHeight(poly), faceMinH + 0.001)
+      const exteriorTop = ringTopPositions(poly.exterior, faceMinH)
+      const holeHierarchies = poly.holes.map(hole => {
+        const holeTop = ringTopPositions(hole, faceMinH)
+        return new Cesium.PolygonHierarchy(holeTop)
+      })
+
+      ds.entities.add({
+        polygon: {
+          hierarchy: new Cesium.PolygonHierarchy(exteriorTop, holeHierarchies),
+          perPositionHeight: true,
+          extrudedHeight: faceMinH,
+          outline: false,
+          material: createYellowHeightGradientMaterialProperty(
+            faceMinH,
+            faceMaxH,
+            fillColor,
+            opacity,
+          ),
+        },
+      })
+
+      addExtrudedPolygonBorders(ds, poly.exterior, faceMinH, strokeWidth, outlineColor)
+      for (const hole of poly.holes) {
+        addExtrudedPolygonBorders(ds, hole, faceMinH, strokeWidth, outlineColor)
+      }
+    }
+
+    this._viewer.dataSources.add(ds)
+
+    const info: LayerInfo = {
+      id: layerId,
+      name: layerName,
+      type: '黄色挤压面',
+      visible: true,
+      color: '#FF8F00',
       dataRefId,
     }
     this._cesiumRefs.set(layerId, { dataSource: ds })
@@ -1035,6 +1112,133 @@ function applyColorToEntity(entity: Cesium.Entity, fillColor: Cesium.Color, stro
     entity.point.color = new Cesium.ConstantProperty(fillColor)
   } else if (entity.billboard) {
     entity.billboard.color = new Cesium.ConstantProperty(fillColor)
+  }
+}
+
+export interface PolygonRingData {
+  exterior: number[][]
+  holes: number[][][]
+}
+
+/** 从 GeoJSON 中提取面环（仅 Polygon / MultiPolygon） */
+export function extractPolygonRingsFromGeoJson(geojson: Record<string, unknown>): PolygonRingData[] {
+  const result: PolygonRingData[] = []
+  const features = normalizeGeoJsonFeatures(geojson)
+
+  for (const feature of features) {
+    const geom = (feature as any)?.geometry
+    if (!geom) continue
+
+    if (geom.type === 'Polygon') {
+      const coords = geom.coordinates as number[][][]
+      if (coords?.[0]?.length) {
+        result.push({ exterior: coords[0]!, holes: coords.slice(1) })
+      }
+    } else if (geom.type === 'MultiPolygon') {
+      const polys = geom.coordinates as number[][][][]
+      for (const poly of polys ?? []) {
+        if (poly?.[0]?.length) {
+          result.push({ exterior: poly[0]!, holes: poly.slice(1) })
+        }
+      }
+    }
+  }
+  return result
+}
+
+function normalizeGeoJsonFeatures(geojson: Record<string, unknown>): unknown[] {
+  const g = geojson as any
+  if (g?.type === 'Feature') return [g]
+  if (g?.type === 'FeatureCollection') return g.features ?? []
+  if (g?.type === 'Polygon' || g?.type === 'MultiPolygon') {
+    return [{ type: 'Feature', geometry: g }]
+  }
+  return []
+}
+
+/** 面环最低点高度（作为挤压底面） */
+export function ringMinHeight(ring: number[][]): number {
+  let min = Infinity
+  for (const c of ring) {
+    const h = c[2] ?? 0
+    if (h < min) min = h
+  }
+  return min === Infinity ? 0 : min
+}
+
+/** 将坐标转为顶面 Cartesian3（最低点为基准，其余为相对高度） */
+export function ringTopPositions(ring: number[][], faceMinHeight: number): Cesium.Cartesian3[] {
+  return ring.map(c => {
+    const lon = c[0]!
+    const lat = c[1]!
+    const h = c[2] ?? 0
+    const relative = h - faceMinHeight
+    return Cesium.Cartesian3.fromDegrees(lon, lat, faceMinHeight + relative)
+  })
+}
+
+/** 面环最高海拔（挤压顶面） */
+export function ringMaxHeight(ring: number[][]): number {
+  let max = -Infinity
+  for (const c of ring) {
+    const h = c[2] ?? 0
+    if (h > max) max = h
+  }
+  return max === -Infinity ? 0 : max
+}
+
+function polygonMaxHeight(poly: PolygonRingData): number {
+  let max = ringMaxHeight(poly.exterior)
+  for (const hole of poly.holes) {
+    max = Math.max(max, ringMaxHeight(hole))
+  }
+  return max
+}
+
+function addExtrudedPolygonBorders(
+  ds: Cesium.CustomDataSource,
+  ring: number[][],
+  faceMinH: number,
+  strokeWidth: number,
+  outlineColor: Cesium.Color,
+): void {
+  const topPositions = ringTopPositions(ring, faceMinH)
+  const bottomPositions = ring.map(c =>
+    Cesium.Cartesian3.fromDegrees(c[0]!, c[1]!, faceMinH),
+  )
+
+  const openRing = ring.length > 1
+    && ring[0]![0] === ring[ring.length - 1]![0]
+    && ring[0]![1] === ring[ring.length - 1]![1]
+  const topLoop = openRing ? topPositions.slice(0, -1) : topPositions
+  const bottomLoop = openRing ? bottomPositions.slice(0, -1) : bottomPositions
+
+  const outlineMat = new Cesium.ColorMaterialProperty(outlineColor)
+
+  ds.entities.add({
+    polyline: {
+      positions: [...topLoop, topLoop[0]!],
+      width: strokeWidth,
+      material: outlineMat,
+    },
+  })
+
+  ds.entities.add({
+    polyline: {
+      positions: [...bottomLoop, bottomLoop[0]!],
+      width: strokeWidth,
+      material: outlineMat,
+    },
+  })
+
+  for (let i = 0; i < topLoop.length; i++) {
+    ds.entities.add({
+      polyline: {
+        positions: [bottomLoop[i]!, topLoop[i]!],
+        width: strokeWidth,
+        material: outlineMat,
+      },
+    })
   }
 }
 

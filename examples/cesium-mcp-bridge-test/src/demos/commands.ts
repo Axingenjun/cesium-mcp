@@ -1,6 +1,7 @@
 import { cmd } from '../app/bridge'
 import { CITIES, cityGeoJson } from './data'
 import { extent } from './cmd-helpers'
+import { YELLOW_MODEL_DEMO_GEOJSON } from './bridge-schema/command-presets'
 
 export async function addCitiesLayer(): Promise<void> {
   await cmd('addGeoJsonLayer', {
@@ -47,6 +48,21 @@ export function addRandomPolygon(): void {
     },
     style: { color, opacity: 0.5, strokeWidth: 3 },
   })
+}
+
+export async function addYellowModelDemo(): Promise<void> {
+  await cmd('addYellowModel', {
+    id: 'yellow-model-demo',
+    name: '黄色挤压面示例',
+    data: YELLOW_MODEL_DEMO_GEOJSON,
+    style: {
+      strokeWidth: 2,
+      color: '#FF8F00',
+      opacity: 0.85,
+      outlineColor: '#B8860B',
+    },
+  })
+  await cmd('flyTo', { longitude: 116.3918, latitude: 39.9105, height: 800, duration: 1.5 })
 }
 
 export function addPolylineLayer(): void {

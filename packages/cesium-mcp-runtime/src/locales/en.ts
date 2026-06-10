@@ -27,6 +27,7 @@ export const toolDescriptions: Record<string, string> = {
   // — layer
   addGeoJsonLayer: 'Add GeoJSON layer to map (supports Point/Line/Polygon, configurable color/choropleth/category rendering). data and url are mutually exclusive',
   addGeoJsonPrimitive: 'High-performance GeoJSON loading for massive datasets (100k+ features). Bypasses Entity system, renders directly via Primitives. data and url are mutually exclusive',
+  addYellowModel: 'Add yellow gradient extruded polygon models (Polygon/MultiPolygon only, coordinates must include height; flat base at face minimum, perPositionHeight extrusion, with top/bottom/vertical borders). data and url are mutually exclusive',
   listLayers: 'Get current layer list (with ID, name, type, visibility)',
   getLayerSchema: 'Get layer field schema — returns field names, types, sample values. Works with GeoJSON/CZML/KML/3D Tiles layers',
   removeLayer: 'Remove a layer from map by layer ID',
@@ -198,6 +199,13 @@ export const paramDescriptions: Record<string, Record<string, string>> = {
     url: 'GeoJSON file URL (mutually exclusive with data)',
     allowPicking: 'Allow picking (default true, disable for better performance)',
     show: 'Whether to show (default true)',
+  },
+  addYellowModel: {
+    id: 'Layer ID (auto-generated if omitted)',
+    name: 'Layer display name',
+    data: 'GeoJSON FeatureCollection (Polygon/MultiPolygon only, coordinates must include height; mutually exclusive with url)',
+    url: 'GeoJSON file URL (mutually exclusive with data)',
+    style: 'Style (strokeWidth, color, opacity, outlineColor)',
   },
   listLayers: {},
   getLayerSchema: {

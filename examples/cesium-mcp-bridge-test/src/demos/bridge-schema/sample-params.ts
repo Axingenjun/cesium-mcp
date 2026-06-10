@@ -1,4 +1,5 @@
 import type { ParsedField, ParsedInterface } from './parse-types'
+import { YELLOW_MODEL_DEMO_GEOJSON } from './command-presets'
 
 const DEMO_POINT = { longitude: 116.39, latitude: 39.91 }
 const DEMO_POINT2 = { longitude: 121.47, latitude: 31.23 }
@@ -15,6 +16,12 @@ const MINI_GEOJSON = {
 /** 引用类型简化为常用子集，避免展开整个嵌套接口 */
 const SIMPLE_REF_TYPES: Record<string, Record<string, unknown>> = {
   LayerStyle: { color: '#3b82f6', opacity: 0.6, pointSize: 12 },
+  YellowModelStyle: {
+    strokeWidth: 2,
+    color: '#FF8F00',
+    opacity: 0.85,
+    outlineColor: '#B8860B',
+  },
   ChoroplethStyle: { field: 'value', breaks: [0, 50, 100], colors: ['#ffffcc', '#fd8d3c', '#e31a1c'] },
   CategoryStyle: { field: 'category', colors: ['#3b82f6', '#ef4444', '#10b981'] },
   MaterialSpec: { type: 'color', color: '#3b82f6' },
@@ -22,7 +29,7 @@ const SIMPLE_REF_TYPES: Record<string, Record<string, unknown>> = {
 
 /** data / url 互斥：有 data 时去掉 url */
 const DATA_URL_ACTIONS = new Set([
-  'AddGeoJsonLayerParams', 'AddGeoJsonPrimitiveParams', 'AddHeatmapParams',
+  'AddGeoJsonLayerParams', 'AddGeoJsonPrimitiveParams', 'AddYellowModelParams', 'AddHeatmapParams',
   'LoadCzmlParams', 'LoadKmlParams', 'AddLabelParams',
 ])
 
@@ -188,5 +195,10 @@ export function buildSampleParams(
   if (!typeName) return {}
   const iface = types.get(typeName)
   if (!iface) return {}
-  return postProcess(typeName, buildFromInterface(iface, types))
+  const params = postProcess(typeName, buildFromInterface(iface, types))
+  if (typeName === 'AddYellowModelParams') {
+    params.data = YELLOW_MODEL_DEMO_GEOJSON
+    delete params.url
+  }
+  return params
 }
